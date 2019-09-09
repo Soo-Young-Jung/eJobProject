@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.faq.dao.IFaqBoardDAO">
+	<sql id="searchFrag">
+		<where>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+						FAQ_TITLE LIKE '%'||#{searchWord}||'%'
+			</if>
+		</where>
+	</sql>
+	
+<!-- 	게시판 목록 구현 -->
+	
+	 <select id="faqBoardSelectList" resultType="FaqBoardVO">
+        <![CDATA[
+            SELECT
+                FAQ_NO,
+                FAQ_TITLE,
+                FAQ_CONTENT,
+                ADM_ID
+            FROM
+                FAQ
+            ORDER BY FAQ_NO DESC
+        ]]>
+    </select>
+
+
+<!-- 여기까지 -->
+	
+	<select id="selectFaqBoardCount" resultType="int">
+		SELECT COUNT(*)
+		FROM FAQ
+		<include refid="searchFrag" />
+	</select>
+<!-- 최근 작성된 글 기준 역순 정렬. -->
+<!-- 게시글과 그 게시글에 달린 댓글의 갯수까지 조회 -->
+	<select id="selectFaqBoardListAll" resultType="FaqBoardVO">
+		SELECT B.*
+		FROM (
+		    SELECT ROWNUM RNUM, A.*
+		    FROM (
+		    	<![CDATA[
+		        SELECT FAQ.FAQ_NO, 
+		               FAQ_TITLE, 
+				       FAQ_CONTENT, ADM_ID
+					   FROM FAQ
+				]]>
+				<include refid="searchFrag" />
+<!-- 				START WITH BO_PARENT IS NULL -->
+<!-- 				CONNECT BY PRIOR BOARD.BO_NO = BO_PARENT -->
+				ORDER BY FAQ_NO DESC
+		    ) A 
+		) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+<!-- 	<resultMap type="BoardVO" id="boardMap" autoMapping="true"> -->
+<!-- 		<id property="bo_no" column="BONO"/> -->
+<!-- 		<collection property="attatchList" ofType="AttatchVO" autoMapping="true"/> -->
+<!-- 	</resultMap> -->
+	
+	<select id="selectFaqBoard" resultType="FaqBoardVO">
+		SELECT  FAQ_NO,    FAQ_TITLE,    FAQ_CONTENT,
+			    ADM_ID
+		FROM  FAQ
+<!-- 		A LEFT OUTER JOIN ATTATCH C  -->
+<!-- 				    		ON (A.BO_NO = C.BO_NO) -->
+		WHERE FAQ_NO = #{faq_no}
+	</select>
+<!-- 	<update id="incrementHit"> -->
+<!-- 		UPDATE BOARD -->
+<!-- 		SET -->
+<!-- 		BO_HIT = BO_HIT + 1 -->
+<!-- 		WHERE BO_NO = #{bo_no} -->
+<!-- 	</update> -->
+	<insert id="insertFaqBoard">
+		<selectKey resultType="int" keyProperty="faq_no" order="BEFORE">
+			SELECT FAQ_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO FAQ (
+		    FAQ_NO,    FAQ_TITLE,    FAQ_CONTENT,    ADM_ID
+		) VALUES (
+			#{faq_no},    #{faq_title},    #{faq_content},    #{adm_id}
+		)
+	</insert>
+<!-- 	<delete id="deleteBoard" statementType="CALLABLE"> -->
+<!-- 		{ CALL DELETEBOARD(#{bo_no,mode=IN},#{rowcnt,mode=OUT,jdbcType=INTEGER}) } -->
+<!-- 	</delete> -->
+	<delete id="deleteFaqBoard" >
+		delete from faq where faq_no = #{faq_no}
+	</delete>
+	<update id="updateFaqBoard">
+		UPDATE Faq
+	    SET
+		    FAQ_TITLE		=		#{faq_title},
+		    FAQ_CONTENT	=		#{faq_content}
+		WHERE	FAQ_NO	=		#{faq_no}
+	</update>
+</mapper>
+
+
+
+
+
+
+
+

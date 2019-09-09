@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.blog.dao.IAttatchDAO">
+	<insert id="insertAttatch">
+		INSERT INTO BLOG_ATTATCH (
+		    BA_NO,    BB_NO,    BA_FILENAME,
+		    BA_SAVENAME,    BA_MIME,    BA_FILESIZE,
+		    BA_FANCYSIZE
+		) 
+		 SELECT  NVL(MAX(BA_NO), 0)+1,    #{bb_no},    #{ba_filename},
+		    #{ba_savename},    #{ba_mime},    #{ba_filesize},
+		    #{ba_fancysize}
+		 FROM BLOG_ATTATCH
+	</insert>
+	<select id="selectAttatch" resultType="BlogBoardAttatchVO">
+		SELECT  BA_NO,    BB_NO,    BA_FILENAME,
+			    BA_SAVENAME,    BA_MIME,    BA_FILESIZE,
+			    BA_FANCYSIZE
+		FROM BLOG_ATTATCH
+		WHERE BA_NO = #{ba_no}
+	</select>
+	<update id="incrementDownCount">
+		UPDATE BLOG_ATTATCH
+		SET 
+		BA_DOWNLOAD = BA_DOWNLOAD + 1
+		WHERE BA_NO = #{ba_no}
+	</update>
+	<delete id="deleteAttatch">
+		DELETE 
+		FROM BLOG_ATTATCH 
+		WHERE BA_NO = #{ba_no}
+	</delete>
+</mapper>

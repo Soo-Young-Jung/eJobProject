@@ -1,0 +1,38 @@
+@charset "UTF-8";
+
+.announceselecter{
+	height: 50px;
+	margin-bottom: 30px;
+	font-size: 14px;
+}
+
+.div_divider_parent {
+	display: flex;
+}
+
+.div_divider_parent .div_divider_child{
+	flex: 1;
+}
+
+.img-resizing {
+	width: 350px;
+	height: 350px;
+}
+
+.middle{
+	display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.announceMidd{
+	font-size: 25px;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+
+.jobselect{
+	display: flex;
+    font-size: medium;
+}

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.blog.dao.IBCategoryDAO">
+	<select id="selectBlogList" resultType="BlogCategoryVO">
+		SELECT
+		BC_NO,
+		MEM_ID,
+		BC_NAME
+		FROM BLOG_CATEGORY
+		WHERE MEM_ID = #{mem_id}
+	</select>
+	<insert id="insertCategory" parameterType="BlogCategoryVO">
+		<selectKey resultType="Integer" keyProperty="bc_no" order="BEFORE">
+			SELECT BCATEGORY_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO BLOG_CATEGORY (
+		BC_NO,
+		MEM_ID,
+		BC_NAME
+		) VALUES (
+		#{bc_no},
+		#{mem_id},
+		#{bc_name}
+		)
+	</insert>
+	<update id="updateCategory" parameterType="BlogCategoryVO">
+		UPDATE BLOG_CATEGORY
+		SET BC_NAME = #{bc_name}
+		WHERE BC_NO = #{bc_no}
+		AND MEM_ID = #{mem_id}
+	</update>
+	<delete id="deleteCategory" parameterType="BlogCategoryVO">
+		DELETE FROM BLOG_CATEGORY
+		WHERE BC_NO = #{bc_no}
+		AND MEM_ID = #{mem_id}
+	</delete>
+	<select id="selectCategory" parameterType="long" resultType="BlogCategoryVO">
+		SELECT BC_NAME, MEM_ID
+		FROM BLOG_CATEGORY
+		WHERE BC_NO = #{bc_no }
+	</select>
+</mapper>

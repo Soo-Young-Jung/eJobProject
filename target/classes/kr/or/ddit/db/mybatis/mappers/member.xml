@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.member.dao.IMemberDAO">
+
+
+<sql id="searchFrag">
+	<where>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+			<choose>
+	     		<when test='"name".equals(searchType)'>
+	     			MEM_NAME LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     		<when test='"id".equals(searchType)'>
+	     			MEM_ID LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     		<when test='"tel".equals(searchType)'>
+	     			MEM_TEL LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     		<when test='"all".equals(searchType)'>
+	     			MEM_NAME LIKE '%'||#{searchWord}||'%' OR
+	     			MEM_ID LIKE '%'||#{searchWord}||'%' OR
+	     			MEM_TEL LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     	</choose>
+		</if>
+	</where>
+</sql>
+
+
+
+<select id="selectMemberCount" resultType="Long" parameterType="PagingVO">
+select cnt
+from (select count(*) cnt
+FROM MEMBER 
+where member.MEM_DIV = 'G')
+<include refid="searchFrag" />
+</select>
+
+<select id="selectMemberList" resultType="MemberVO" parameterType="PagingVO">
+WITH ORDEREDALBA AS(
+select A.*
+from (SELECT 
+MEM_PROFILE,
+MEM_ID,
+MEM_NAME,
+MEM_TEL
+FROM MEMBER
+where MEM_DIV = 'G') A
+<include refid="searchFrag" /> 
+
+
+)
+SELECT *
+		FROM (
+			SELECT ROWNUM RNUM, ORDEREDALBA.*
+			FROM ORDEREDALBA
+		)	
+WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+     
+</select>
+
+<select id="selectMember" parameterType="String" resultType="MemberVO">
+select  
+	mem_profile,
+	mem_id,
+	mem_name,
+	mem_tel,
+	mem_mail,
+	mem_add1,
+	mem_add2
+from member
+where mem_id=#{mem_id}
+</select>
+		
+
+	<select id="selectEntProfileList" resultType="MemberVO">
+		<![CDATA[
+		SELECT C.*
+		FROM (SELECT A.MEM_ID, MEM_PROFILE, ENT_NAME
+		FROM MEMBER A LEFT OUTER JOIN (
+            SELECT ENT_INFO.MEM_ID, ENT_NAME
+              FROM ENT_INFO
+        ) ENT_INFO ON(
+            A.MEM_ID = ENT_INFO.MEM_ID
+        )
+		WHERE MEM_DIV='E' AND MEM_PROFILE IS NOT NULL)C
+		WHERE ROWNUM <=6
+		]]>
+	</select>
+
+</mapper>

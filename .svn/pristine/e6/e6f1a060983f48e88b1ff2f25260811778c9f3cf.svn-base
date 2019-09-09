@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.ent_info.dao.IEnt_infoDAO">
+<sql id="albaColumns">
+	MEM_ID,
+ENT_NO,
+ENT_NAME,
+ENT_CEO,
+ENT_CATEGORY,
+ENT_ADDR1,
+ENT_ADDR2,
+ENT_TEL,
+ENT_MAIL
+</sql>
+
+<sql id="searchFrag">
+	<where>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+			<choose>
+	     		<when test='"name".equals(searchType)'>
+	     			ent_info.ENT_NAME LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     		<when test='"address".equals(searchType)'>
+	     			ent_info.ENT_ADDR2 LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     		<when test='"tel".equals(searchType)'>
+	     			ent_info.ENT_TEL LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     		<when test='"all".equals(searchType)'>
+	     			ent_info.ENT_NAME LIKE '%'||#{searchWord}||'%' OR
+	     			ent_info.ENT_ADDR2 LIKE '%'||#{searchWord}||'%' OR
+	     			ent_info.ENT_TEL LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     	</choose>
+		</if>
+	</where>
+</sql>
+
+
+
+<!-- 전체 리스트 -->
+<select id="selectEnt_infoList" resultType="Ent_info2VO" parameterType="PagingVO">
+WITH ORDEREDALBA AS(
+SELECT 
+MEM_PROFILE,
+MEMBER.MEM_ID,
+ENT_INFO.ENT_NO,
+ENT_INFO.ENT_NAME,
+ENT_INFO.ENT_CATEGORY,
+ENT_INFO.ENT_ADDR2,
+ENT_INFO.ENT_TEL
+FROM ENT_INFO LEFT OUTER JOIN(
+	SELECT MEM_ID, MEM_PROFILE
+	FROM MEMBER
+) MEMBER ON (MEMBER.MEM_ID= ENT_INFO.MEM_ID)
+<include refid="searchFrag" /> 
+
+
+)
+SELECT *
+		FROM (
+			SELECT ROWNUM RNUM, ORDEREDALBA.*
+			FROM ORDEREDALBA
+		)	
+WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+     
+    
+</select>
+
+<select id="selectEnt_infoCount" resultType="Long" parameterType="PagingVO">
+		
+SELECT COUNT(ent_info.mem_id)
+		 FROM ent_info LEFT OUTER JOIN(
+		SELECT MEM_ID
+		FROM MEMBER
+	) MEMBER ON (member.mem_id= ent_info.mem_id)
+		 <include refid="searchFrag" />
+</select>
+
+<select id="selectEnt_info" resultType="Ent_info2VO" parameterType="String" >
+	select 
+		MEM_PROFILE,
+		ENT_INFO.MEM_ID,
+		ENT_INFO.ENT_NO,
+		ENT_INFO.ENT_NAME,
+		ENT_INFO.ENT_CEO,
+		ENT_INFO.ENT_CATEGORY,
+		ENT_INFO.ENT_ADDR1,
+		ENT_INFO.ENT_ADDR2,
+		ENT_INFO.ENT_TEL,
+		ENT_INFO.ENT_MAIL
+
+		from ent_info, member
+		where ent_info.mem_id = #{mem_id} and ent_info.mem_id=member.mem_id
+
+</select>
+
+<select id="announcevo" resultType="AnnounceVO" parameterType="String">
+
+		 
+		 
+		 SELECT * FROM ANNOUNCE_LIST
+		WHERE MEM_ID = #{mem_id}
+         ORDER BY ANNL_CLOSEING
+</select>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 멤버 삽입 -->
+<select id="insert" parameterType="MemberVO">
+insert into member(MEM_ID,
+MEM_PASS,
+MEM_NAME,
+MEM_MAIL,
+MEM_TEL,
+MEM_DIV,
+MEM_PROFILE,
+MEM_DELETE,
+MEM_ALARM)
+values(
+#{mem_id},
+ #{mem_pass}, 
+ #{mem_name}, 
+ #{mem_mail}, 
+ #{mem_tel}, 
+ #{mem_div},
+ #{mem_profile, jdbcType=BLOB},
+  #{mem_delete},
+  #{mem_alarm, jdbcType=INTEGER}
+  )
+</select>
+
+
+</mapper>

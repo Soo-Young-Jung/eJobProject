@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC
+       "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+       "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+	<definition name="parent" template="/WEB-INF/views/template.jsp">
+		    <put-attribute name="title" value="이잡어때" />
+		    <put-attribute name="topMenu" value="/includee/topMenu.jsp" />
+		  	<put-attribute name="leftMenu" value="/includee/leftMenu.jsp"/>
+		    <put-attribute name="footer" value="/includee/footer.jsp" />
+	</definition>
+	<!-- 일반회원 마이페이지 -->
+	<definition name="mypage" template="/WEB-INF/views/mypagetemplate.jsp">
+		    <put-attribute name="title" value="이잡어때" />
+		    <put-attribute name="mypagetopMenu" value="/mypageincludee/mypagetopMenu.jsp" />
+		    <put-attribute name="mypageleftMenu" value="/mypageincludee/mypageleftMenu.jsp" />
+		    <put-attribute name="footer" value="/mypageincludee/mypagefooter.jsp" />
+	</definition>
+	
+	
+	<!-- 기업회원 마이페이지 -->
+	<definition name="entmypage" template="/WEB-INF/views/entmypagetemplate.jsp">
+		    <put-attribute name="title" value="이잡어때" />
+		    <put-attribute name="entmypagetopMenu" value="/entmypageincludee/entmypagetopMenu.jsp" />
+		    <put-attribute name="entmypageleftMenu" value="/entmypageincludee/entmypageleftMenu.jsp" />
+		    <put-attribute name="footer" value="/entmypageincludee/entmypagefooter.jsp" />
+	</definition>
+	
+	<!-- 관리자 마이페이지 -->
+	<definition name="adminmypage" template="/WEB-INF/views/adminmypagetemplate.jsp">
+		    <put-attribute name="title" value="이잡어때" />
+		    <put-attribute name="adminmypagetopMenu" value="/adminmypage/adminmypagetopMenu.jsp" />
+		    <put-attribute name="adminmypageleftMenu" value="/adminmypage/adminmypageleftMenu.jsp" />
+		    <put-attribute name="footer" value="/adminmypage/adminmypagefooter.jsp" />
+	</definition>
+	
+	 <!-- 이벤트 페이지 -->
+   <definition name="event" template="/WEB-INF/views/eventtemplate.jsp">
+          <put-attribute name="title" value="이잡어때" />
+          <put-attribute name="eventtopMenu" value="/includee/topMenu.jsp" />
+           <put-attribute name="eventleftMenu" value="/eventincludee/eventleftMenu.jsp"/>
+          <put-attribute name="footer" value="/eventincludee/footer.jsp" />
+   </definition>
+		
+	<!-- 블로그 쪽 형욱쓰 장난감 -->
+	<definition name="blogHome" template="/WEB-INF/views/blogTemplate/hwtemplate.jsp">
+		<put-attribute name="title" value="이잡어때 - 블로그 홈" />
+	    <put-attribute name="hwtopmenu" value="/WEB-INF/views/blogHomeIncludee/hwtopmenu.jsp" />
+	    <put-attribute name="hwleftmenu" value="/WEB-INF/views/blogHomeIncludee/hwleftmenu.jsp" />
+	    <put-attribute name="hwfooter" value="/WEB-INF/views/blogHomeIncludee/hwfooter.jsp" />
+    </definition>
+	<!-- 블로그 쪽 형욱쓰 장난감 -->
+	<definition name="blogMain" template="/WEB-INF/views/blogTemplate/blogmaintemplate.jsp">
+		<put-attribute name="title" value="이잡어때 - 블로그 홈" />
+	    <put-attribute name="blogtop" value="/blogMainIncludee/blogtop.jsp" />
+	    <put-attribute name="blogright" value="/blogMainIncludee/blogright.jsp" />
+	    <put-attribute name="blogfooter" value="/blogMainIncludee/blogfooter.jsp" />
+    </definition>
+
+<!-- 	definition : 화면 1 == logical view name -->
+	<definition name="index" extends="parent">
+	    <put-attribute name="content" value="/WEB-INF/views/index.jsp" />
+    </definition>
+	    
+<!-- 	    공고게시판 -->
+    <definition name="announce/*" extends="parent">
+	    <put-attribute name="content" value="/WEB-INF/views/announce/{1}.jsp" />
+    </definition>
+<!--     에러페이지 설정 -->
+    <definition name="errors/*" extends="parent">
+	    <put-attribute name="content" value="/WEB-INF/views/errors/{1}.jsp" />
+    </definition>
+    
+    <definition name="login/*" extends="parent">
+	    <put-attribute name="content" value="/WEB-INF/views/login/{1}.jsp" />
+    </definition>
+    <definition name="join/*" extends="parent">
+	    <put-attribute name="content" value="/WEB-INF/views/login/{1}.jsp" />
+    </definition>
+    <definition name="mypage/*" extends="mypage">
+	    <put-attribute name="mypagecontent" value="/WEB-INF/views/mypage/{1}.jsp" />
+    </definition>
+    <definition name="entmypage/*" extends="entmypage">
+	    <put-attribute name="entmypagecontent" value="/WEB-INF/views/entmypage/{1}.jsp" />
+    </definition>
+    <definition name="adminmypage/*" extends="adminmypage">
+	    <put-attribute name="adminmypagecontent" value="/WEB-INF/views/adminmypage/{1}.jsp" />
+    </definition>
+	
+	<!-- 블로그 쪽 형욱쓰 장난감 -->
+    <definition name="blogHome/*" extends="blogHome">
+		<put-attribute name="hwcontent" value="/WEB-INF/views/blogHome/{1}.jsp" />
+	</definition>
+	<!-- 블로그 쪽 형욱쓰 장난감 -->
+    <definition name="blogMain/*" extends="blogMain">
+		<put-attribute name="blogcontent" value="/WEB-INF/views/blogMain/{1}.jsp" />
+	</definition>
+    <definition name="email/*" extends="blogHome">
+		<put-attribute name="hwcontent" value="/WEB-INF/views/email/{1}.jsp" />
+	</definition>
+	
+	<!-- 공지사항 -->
+	<definition name="notice/*" extends="parent">
+	    <put-attribute name="content" value="/WEB-INF/views/notice/{1}.jsp" />
+    </definition>
+    
+    <!-- 자주묻는질문(FAQ) -->
+	<definition name="faq/*" extends="parent">
+	    <put-attribute name="content" value="/WEB-INF/views/faq/{1}.jsp" />
+    </definition>
+    
+       <!-- 민준짱~!! -->
+   <definition name="ent_info/*" extends="parent">
+          <put-attribute name="content" value="/WEB-INF/views/ent_info/{1}.jsp" />
+    </definition>
+     <definition name="member/*" extends="parent">
+          <put-attribute name="content" value="/WEB-INF/views/member/{1}.jsp" />
+    </definition>
+    <definition name="suggestion/*" extends="parent">
+          <put-attribute name="content" value="/WEB-INF/views/suggestion/{1}.jsp" />
+    </definition>
+     <definition name="event/*" extends="event">
+          <put-attribute name="eventcontent" value="/WEB-INF/views/event/{1}.jsp" />
+    </definition>
+</tiles-definitions>
+

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mypage.dao.IMypageDAO">
+	<sql id="insertFrag">
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(mem_profile)">
+				, MEM_PROFILE = #{mem_profile,jdbcType=BLOB}
+			</if>
+	</sql>
+	
+	
+	<select id="loginrecord" parameterType="string" resultType="LoginRecordVO">
+		SELECT 	MEM_ID, TO_CHAR(LOGIN_TIME, 'YYYY-MM-DD-DAY HH24:MI:SS') LOGIN_TIME
+		FROM	LOGIN_RECORD
+		WHERE	MEM_ID = #{mem_id}
+		ORDER BY LOGIN_TIME DESC
+	</select>
+	
+	<select id="recordCount" parameterType="string" resultType="int">
+		SELECT	COUNT(MEM_ID)
+		FROM	LOGIN_RECORD
+		WHERE	MEM_ID = #{mem_id}
+	</select>
+	
+	<select id="recordList" parameterType="PagingVO" resultType="LoginRecordVO">
+		SELECT	A.*
+		FROM	
+			(SELECT ROWNUM RNUM, B.*
+			 FROM	
+			 	(SELECT	MEM_ID, LOGIN_TIME
+			 	 FROM	LOGIN_RECORD
+				 WHERE	MEM_ID = #{mem_id}
+				 ORDER BY LOGIN_TIME DESC
+			 	) B
+			 ) A
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<select id="searchMember" parameterType="string" resultType="MemberVO">
+		SELECT	MEM_ID, MEM_NAME, MEM_DIV, MEM_MAIL, MEM_TEL, MEM_PROFILE, MEM_ADD1, MEM_ADD2, MEM_PASS
+		FROM	MEMBER
+		WHERE	MEM_ID = #{mem_id}
+	</select>
+	
+	<update id="editMember" parameterType="MemberVO">
+		UPDATE  MEMBER
+		SET     MEM_MAIL = #{mem_mail,jdbcType=VARCHAR},
+        		MEM_TEL = #{mem_tel,jdbcType=VARCHAR},
+        		MEM_ADD1 = #{mem_add1,jdbcType=VARCHAR},
+        		MEM_ADD2 = #{mem_add2,jdbcType=VARCHAR}
+        		, MEM_PROFILE = #{mem_profile,jdbcType=BLOB}
+		WHERE   MEM_ID = #{mem_id,jdbcType=VARCHAR}
+	</update>
+	
+	<update id="editEntMember" parameterType="MemberVO">
+		UPDATE  MEMBER
+		SET     MEM_MAIL = #{mem_mail,jdbcType=VARCHAR},
+        		MEM_TEL = #{mem_tel,jdbcType=VARCHAR},
+        		MEM_ADD1 = #{mem_add1,jdbcType=VARCHAR},
+        		MEM_ADD2 = #{mem_add2,jdbcType=VARCHAR}
+        		, MEM_PROFILE = #{mem_profile,jdbcType=BLOB}
+		WHERE   MEM_ID = #{mem_id,jdbcType=VARCHAR}
+	</update>
+	
+	<insert id="insertResume" parameterType="ResumeVO">
+		INSERT  INTO EASY_RESUME(ER_NO, ER_NAME, ER_JOBSEARCH, ER_AGE, ER_GENDER, ER_FEB, ER_INTEREST, ER_CAREER, MEM_ID, ER_TITLE, ER_OPEN)
+       			VALUES(ER_SEQ.NEXTVAL, #{er_name}, #{er_jobsearch}, #{er_age}, #{er_gender}, #{er_feb}, #{er_interest}, #{er_career}, #{mem_id}, #{er_title}, #{er_open})
+	</insert>
+	
+	<insert id="insertCareer" parameterType="CareerVO">
+		INSERT  INTO CAREER(CA_NAME, CA_POSITION, ER_CAREER, CA_JOIN, CA_RETIRE, MEM_ID, ER_NO)
+       			VALUES(#{ca_name}, #{ca_position}, #{er_career}, #{ca_join}, #{ca_retire}, #{mem_id}, #{er_no})
+	</insert>
+	
+	<select id="countResume" parameterType="string" resultType="int">
+		SELECT 	COUNT(MEM_ID)
+		FROM	EASY_RESUME
+		WHERE	MEM_ID = #{mem_id}
+	</select>
+	
+	<select id="selectResume" parameterType="string" resultType="ResumeVO">
+	SELECT	ER_NO,
+				ER_AGE,
+				ER_GENDER,
+				ER_FEB,
+				ER_CAREER,
+				ER_INTEREST,
+				MEM_ID,
+				ER_NAME,
+				ER_JOBSEARCH,
+				ER_TITLE,
+				ER_OPEN
+		FROM	EASY_RESUME
+		WHERE	MEM_ID = #{mem_id}
+		ORDER BY ER_NO
+</select>
+	
+	<delete id="deleteResume" parameterType="ResumeVO">
+		DELETE	EASY_RESUME
+		WHERE	ER_NO = #{er_no}
+		AND		MEM_ID = #{mem_id}
+	</delete>
+	
+	<select id="openResume" parameterType="string" resultType="long">
+		SELECT	ER_NO
+		FROM	EASY_RESUME
+		WHERE	MEM_ID = #{mem_id}
+		AND		ER_OPEN = 'Y'
+	</select>
+	
+	<select id="searchId" parameterType="MemberVO" resultType="string">
+		SELECT	MEM_ID
+		FROM	MEMBER
+		WHERE	MEM_NAME = #{mem_name}
+		AND		MEM_MAIL = #{mem_mail}
+	</select>
+	
+	<select id="searchPass" parameterType="MemberVO" resultType="string">
+		SELECT	MEM_ID, MEM_NAME, MEM_MAIL, MEM_TEL, MEM_PROFILE, MEM_ADD1, MEM_ADD2, MEM_PASS
+		FROM	MEMBER
+		WHERE	MEM_ID = #{mem_id}
+		AND		MEM_NAME = #{mem_name}
+		AND		MEM_MAIL = #{mem_mail}
+	</select>
+	
+	
+	<select id="searchResume" parameterType="int" resultType="ResumeVO">
+		SELECT	ER_AGE,
+				ER_GENDER,
+				ER_FEB,
+				ER_CAREER,
+				ER_INTEREST,
+				MEM_ID,
+				ER_NAME,
+				ER_JOBSEARCH,
+				ER_TITLE,
+				ER_OPEN,
+				ER_NO
+		FROM	EASY_RESUME
+		WHERE	ER_NO = #{er_no}
+		ORDER BY ER_NO
+	</select>
+	
+	<select id="searchCareer" parameterType="CareerVO" resultType="CareerVO">
+		SELECT	CA_NAME,
+				TO_CHAR(CA_JOIN, 'YYYY-MM-DD') CA_JOIN,
+				TO_CHAR(CA_RETIRE, 'YYYY-MM-DD') CA_RETIRE,
+				CA_POSITION,
+				ER_CAREER,
+				MEM_ID,
+				ER_NO
+		FROM	CAREER
+		WHERE	ER_CAREER = #{er_career}
+		AND		ER_NO = #{er_no}
+	</select>
+	
+	<update id="editResume" parameterType="ResumeVO">
+		UPDATE	EASY_RESUME	SET 
+					ER_AGE = #{er_age},
+					ER_GENDER = #{er_gender},
+					ER_FEB = #{er_feb},
+					ER_CAREER = #{er_career},
+					ER_INTEREST = #{er_interest},
+					ER_NAME = #{er_name},
+					ER_JOBSEARCH = #{er_jobsearch},
+					ER_TITLE = #{er_title},
+					ER_OPEN = #{er_open}
+		WHERE	ER_NO = #{er_no}
+	</update>
+	
+	<update id="editCareer" parameterType="CareerVO">
+		UPDATE	CAREER	SET	
+					CA_NAME = #{ca_name},
+					CA_JOIN = #{ca_join},
+					CA_RETIRE = #{ca_retire},
+					CA_POSITION = #{ca_position},
+					ER_CAREER = #{er_career}
+		WHERE	ER_NO = #{er_no} 
+	</update>
+	
+	<delete id="deleteCareer" parameterType="CareerVO">
+		DELETE	CAREER
+		WHERE	ER_NO = #{er_no}
+		AND		MEM_ID = #{mem_id} 
+	</delete>
+	
+	<insert id="insertMypageAttatch" parameterType="MypageAttatchVO">
+		INSERT 	INTO FILE_LIST(FILE_NO, FILE_ORGN, FILE_SAVEN, MEM_ID, ER_NO)
+				VALUES(FILE_SEQ.NEXTVAL, #{file_orgn}, #{file_saven}, #{mem_id}, #{er_no} )
+	</insert>
+	
+	<select id="selectAttatch" parameterType="long" resultType="MypageAttatchVO">
+		SELECT	FILE_NO, FILE_ORGN, FILE_SAVEN, ER_NO, MEM_ID
+		FROM	FILE_LIST
+		WHERE	ER_NO = #{er_no}
+	</select>
+	
+	<delete id="deleteAttatch" parameterType="long">
+		DELETE
+		FROM	FILE_LIST
+		WHERE	ER_NO = #{er_no}
+	</delete>
+	
+	<select id="selectErno" parameterType="ResumeVO" resultType="long">
+		SELECT	ER_NO
+		FROM	EASY_RESUME
+		WHERE	ER_TITLE = #{er_title}
+		AND		MEM_ID = #{mem_id}
+	</select>
+	
+	<select id="searchEntInfo" parameterType="string" resultType="Ent_infoVO">
+		SELECT	*
+		FROM	ENT_INFO
+		WHERE	MEM_ID = #{mem_id}
+	</select>
+	
+	<update id="editEntInfo" parameterType="Ent_infoVO">
+		UPDATE	ENT_INFO
+		SET		ENT_NAME = #{ent_name},
+				ENT_CEO = #{ent_ceo},
+				ENT_CATEGORY =#{ent_category},
+				ENT_ADDR1 = #{ent_addr1},
+				ENT_ADDR2 = #{ent_addr2},
+				ENT_TEL = #{ent_tel},
+				ENT_MAIL = #{ent_mail}
+		WHERE	MEM_ID = #{mem_id}
+	</update>
+	
+</mapper>

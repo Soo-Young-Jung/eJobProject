@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.login.dao.ILoginDAO">
+	
+	<select id="loginCheck" resultType="int" parameterType="MemberVO">
+		SELECT 	COUNT(*)
+		FROM    MEMBER
+		WHERE   MEM_ID = #{mem_id}
+		AND     MEM_PASS = #{mem_pass}
+	</select>
+	
+	<insert id="insertGen" parameterType="MemberVO">
+		INSERT  INTO MEMBER(MEM_ID, MEM_PASS, MEM_NAME, MEM_MAIL, MEM_TEL, MEM_DIV, MEM_DELETE, MEM_ALARM)
+        VALUES(#{mem_id}, #{mem_pass}, #{mem_name}, #{mem_mail}, #{mem_tel}, #{mem_div}, 'N', 0)
+	</insert>
+	
+	<insert id="insertEnt" parameterType="MemberVO">
+		INSERT  INTO MEMBER(MEM_ID, MEM_PASS, MEM_NAME, MEM_MAIL, MEM_TEL, MEM_DIV, MEM_DELETE, MEM_ALARM)
+        VALUES(#{mem_id}, #{mem_pass}, #{mem_name}, #{mem_mail}, #{mem_tel}, #{mem_div}, 'N', 0)
+	</insert>
+	
+	<insert id="insertEntInfo" parameterType="Ent_infoVO">
+		INSERT  INTO ENT_INFO(MEM_ID, ENT_NO, ENT_NAME, ENT_CEO, ENT_CATEGORY, ENT_ADDR1, ENT_ADDR2, ENT_TEL, ENT_MAIL)
+        VALUES(#{mem_id}, #{ent_no}, #{ent_name}, #{ent_ceo}, #{ent_category}, #{ent_addr1}, #{ent_addr2}, #{ent_tel}, #{ent_mail})
+	</insert>
+	
+	<select id="idCheck" resultType="int" parameterType="string">
+		SELECT	COUNT(MEM_ID)
+		FROM	MEMBER
+		WHERE	MEM_ID = #{mem_id, jdbcType=VARCHAR}
+	</select>
+	
+	<select id="divCheck" parameterType="string" resultType="string">
+		SELECT	MEM_DIV
+		FROM	MEMBER
+		WHERE	MEM_ID = #{mem_id}
+	</select>
+	
+	<insert id="loginRecord" parameterType="string">
+		INSERT INTO LOGIN_RECORD(MEM_ID, LOGIN_TIME)
+		VALUES(#{mem_id}, SYSDATE)
+	</insert>
+</mapper>

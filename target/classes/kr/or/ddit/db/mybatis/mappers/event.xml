@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.event.dao.IEventDAO">
+
+
+<sql id="searchFrag">
+	<where>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+			<choose>
+	     		<when test='"title".equals(searchType)'>
+	     			EVT_TITLE LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     		<when test='"content".equals(searchType)'>
+	     			EVT_CONTENT LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     		<when test='"all".equals(searchType)'>
+	     			EVT_TITLE LIKE '%'||#{searchWord}||'%' OR
+	     			EVT_CONTENT LIKE '%'||#{searchWord}||'%'
+	     		</when>
+	     	</choose>
+		</if>
+	</where>
+</sql>
+
+
+<select id="selectEventList" resultType="EventVO" parameterType="PagingVO">
+WITH ORDEREDALBA AS(
+select 
+evt_no,
+evt_title,
+evt_content,
+TO_CHAR(evt_date, 'YYYY-MM-DD') evt_date,
+TO_CHAR(evt_closeing, 'YYYY-MM-DD') evt_closeing,
+evt_qualification,
+evt_money,
+evt_profile
+
+from event
+
+<include refid="searchFrag" /> 
+)
+SELECT *
+		FROM (
+			SELECT ROWNUM RNUM, ORDEREDALBA.*
+			FROM ORDEREDALBA
+		)	
+WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+
+</select>
+<select id="selectEventList1"  resultType="EventVO">
+
+		select 
+		evt_no,
+		evt_title,
+		evt_content,
+		TO_CHAR(evt_date, 'YYYY-MM-DD') evt_date,
+		TO_CHAR(evt_closeing, 'YYYY-MM-DD') evt_closeing,
+		evt_qualification,
+		evt_money,
+		evt_profile
+
+		from event
+		
+
+</select>
+<select id="selectEventList2" parameterType="String" resultType="EventVO">
+
+		select 
+		evt_no,
+		evt_title,
+		evt_content,
+		TO_CHAR(evt_date, 'YYYY-MM-DD') evt_date,
+		TO_CHAR(evt_closeing, 'YYYY-MM-DD') evt_closeing,
+		evt_qualification,
+		evt_money,
+		evt_profile
+
+		from event
+		where EVT_ORGANIZER = #{evt_organizer}
+
+</select>
+
+<select id="selectEventList3" parameterType="String" resultType="EventVO">
+
+		select 
+		evt_no,
+		evt_title,
+		evt_content,
+		TO_CHAR(evt_date, 'YYYY-MM-DD') evt_date,
+		TO_CHAR(evt_closeing, 'YYYY-MM-DD') evt_closeing,
+		evt_qualification,
+		evt_money,
+		evt_profile
+
+		from event
+		where evt_qualification = #{evt_qualification}
+
+</select>
+
+<select id="selectEventCount" resultType="Long" parameterType="PagingVO">
+	SELECT COUNT(*)
+		FROM event
+		
+		<include refid="searchFrag" />
+</select>
+
+<select id="selectEvent" resultType="EventVO" parameterType="Long">
+	SELECT * FROM EVENT
+	WHERE EVT_NO = #{evt_no}
+</select>
+
+<insert id="insertEvent" parameterType="EventVO">
+insert into event(
+EVT_NO,
+EVT_TITLE,
+EVT_CONTENT,
+EVT_DATE,
+MEM_ID,
+EVT_CLOSEING,
+EVT_QUALIFICATION,
+EVT_MONEY,
+EVT_ORGANIZER,
+EVT_PROFILE
+)values( 
+event_SEQ.NEXTVAL,
+#{evt_title},
+#{evt_content},
+TO_DATE(#{evt_date}, 'YYYY-MM-DD'),
+#{mem_id},
+TO_DATE(#{evt_closeing}, 'YYYY-MM-DD'),
+#{evt_qualification},
+#{evt_money},
+#{evt_organizer},
+ #{evt_profile, jdbcType=BLOB}
+)
+</insert>
+
+
+<update id="updateEvent" parameterType="EventVO">
+		UPDATE event
+		   SET 
+		       EVT_TITLE = #{evt_title},
+		       EVT_CONTENT = #{evt_content},
+		       EVT_DATE = TO_DATE(#{evt_date}, 'YYYY-MM-DD'),
+		       EVT_CLOSEING = TO_DATE(#{evt_closeing}, 'YYYY-MM-DD'),
+		       EVT_QUALIFICATION = #{evt_qualification},
+		       EVT_MONEY = #{evt_money},
+		       EVT_PROFILE =  #{evt_profile, jdbcType=BLOB},
+		       EVT_ORGANIZER = #{evt_organizer}
+		 
+		     
+		 WHERE EVT_NO= #{evt_no}      
+</update>
+
+<delete id="deleteEvent" parameterType="EventVO">
+DELETE FROM EVENT
+		WHERE EVT_NO = #{evt_no}
+
+</delete>
+
+<select id="selectRecentEvent" resultType="EventVO">
+	 <![CDATA[
+	 SELECT ROWNUM, EVT_NO,
+			EVT_TITLE,
+			EVT_CONTENT,
+			EVT_DATE,
+			EVT_CLOSEING,
+			EVT_QUALIFICATION,
+			EVT_MONEY,
+			EVT_PROFILE
+	 FROM (SELECT EVT_NO,
+				  EVT_TITLE,
+				  EVT_CONTENT,
+				  EVT_DATE,
+				  EVT_CLOSEING,
+				  EVT_QUALIFICATION,
+				  EVT_MONEY,
+				  EVT_PROFILE
+       	     FROM EVENT
+       	    ORDER BY EVT_CLOSEING)
+      WHERE ROWNUM <= 3
+      ]]>
+</select>
+
+
+</mapper>

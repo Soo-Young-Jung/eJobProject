@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.notice.dao.INoticeBoardDAO">
+	<sql id="searchFrag">
+		<where>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+				<choose>
+					<when test="searchType eq 'title'">
+						NOT_TITLE LIKE '%'||#{searchWord}||'%'
+					</when>
+					<when test="searchType eq 'writer'">
+						ADM_ID LIKE '%'||#{searchWord}||'%'
+					</when>
+					<when test="searchType eq 'content'">
+						NOT_CONTENT LIKE '%'||#{searchWord}||'%'
+					</when>
+					<otherwise>
+						(NOT_TITLE LIKE '%'||#{searchWord}||'%'
+						OR ADM_ID LIKE '%'||#{searchWord}||'%'
+						OR NOT_CONTENT LIKE '%'||#{searchWord}||'%')
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="not_div neq 'A'.toString()">
+						AND NOT_DIV = #{not_div}
+					</when>
+				</choose>
+				
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isBlank(searchWord)">
+				<choose>
+					<when test="not_div neq 'A'.toString()">
+						AND NOT_DIV = #{not_div}
+					</when>
+				</choose>
+			</if>
+		</where>
+	</sql>
+	
+<!-- 	게시판 목록 구현 -->
+	
+	 <select id="noticeSelectBoardList" resultType="NoticeBoardVO">
+        <![CDATA[
+            SELECT
+                NOT_NO,
+                NOT_TITLE,
+                NOT_CONTENT,
+                NOT_DIV,
+                ADM_ID,
+                TO_CHAR( NOT_DATE,'YYYY-MM-DD') NOT_DATE
+            FROM
+                NOTICE
+            WHERE
+                NOT_DIV = #{not_div}
+            ORDER BY NOT_NO DESC
+        ]]>
+    </select>
+
+
+<!-- 여기까지 -->
+	
+	<select id="selectNoticeCount" resultType="int">
+		SELECT COUNT(*)
+		FROM NOTICE
+		<include refid="searchFrag" />
+	</select>
+<!-- 최근 작성된 글 기준 역순 정렬. -->
+<!-- 게시글과 그 게시글에 달린 댓글의 갯수까지 조회 -->
+	<select id="selectNoticeListAll" resultType="NoticeBoardVO">
+		SELECT B.*
+		FROM (
+		    SELECT ROWNUM RNUM, A.*
+		    FROM (
+		    	<![CDATA[
+		        SELECT NOTICE.NOT_NO, 
+		               NOT_TITLE, 
+				       NOT_CONTENT, NOT_DIV, ADM_ID,
+				       TO_CHAR( NOT_DATE,'YYYY-MM-DD') NOT_DATE
+					   FROM NOTICE 
+				]]>
+				<include refid="searchFrag" />
+<!-- 				START WITH BO_PARENT IS NULL -->
+<!-- 				CONNECT BY PRIOR BOARD.BO_NO = BO_PARENT -->
+				ORDER BY NOT_NO DESC
+		    ) A 
+		) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+<!-- 	<resultMap type="BoardVO" id="boardMap" autoMapping="true"> -->
+<!-- 		<id property="bo_no" column="BONO"/> -->
+<!-- 		<collection property="attatchList" ofType="AttatchVO" autoMapping="true"/> -->
+<!-- 	</resultMap> -->
+	
+	<select id="selectNotice" resultType="NoticeBoardVO">
+		SELECT  NOT_NO,    NOT_TITLE,    NOT_CONTENT,
+			    NOT_DIV,    ADM_ID, TO_CHAR( NOT_DATE,'YYYY-MM-DD') NOT_DATE
+		FROM  NOTICE 
+<!-- 		A LEFT OUTER JOIN ATTATCH C  -->
+<!-- 				    		ON (A.BO_NO = C.BO_NO) -->
+		WHERE NOT_NO = #{not_no}
+	</select>
+<!-- 	<update id="incrementHit"> -->
+<!-- 		UPDATE BOARD -->
+<!-- 		SET -->
+<!-- 		BO_HIT = BO_HIT + 1 -->
+<!-- 		WHERE BO_NO = #{bo_no} -->
+<!-- 	</update> -->
+	<insert id="insertNotice">
+		<selectKey resultType="int" keyProperty="not_no" order="BEFORE">
+			SELECT BO_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO NOTICE (
+		    NOT_NO,    NOT_TITLE,    NOT_CONTENT,    NOT_DIV,
+		    ADM_ID, NOT_DATE
+		) VALUES (
+			#{not_no},    #{not_title},    #{not_content},    #{not_div},
+		    #{adm_id}, sysdate  
+		)
+	</insert>
+<!-- 	<delete id="deleteBoard" statementType="CALLABLE"> -->
+<!-- 		{ CALL DELETEBOARD(#{bo_no,mode=IN},#{rowcnt,mode=OUT,jdbcType=INTEGER}) } -->
+<!-- 	</delete> -->
+	<delete id="deleteNotice" >
+		delete from notice where not_no = #{not_no}
+	</delete>
+	<update id="updateNotice">
+		UPDATE Notice
+	    SET
+		    NOT_TITLE		=		#{not_title},
+		    NOT_CONTENT	=		#{not_content},
+		    NOT_DIV	=		#{not_div},
+		    NOT_DATE = sysdate
+		WHERE	NOT_NO	=		#{not_no}
+	</update>
+</mapper>
+
+
+
+
+
+
+
+

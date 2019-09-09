@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.alarm.dao.IAlarmDAO">
+	<insert id="replyNotice" parameterType="AlarmVO">
+		<selectKey resultType="Integer" keyProperty="al_no" order="BEFORE">
+			SELECT ALARM_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ALARM (
+			MEM_ID1,
+			MEM_ID2,
+			AL_NO,
+			AL_DIV,
+			BB_NO
+		) VALUES (
+			#{mem_id1},
+			#{mem_id2},
+			#{al_no},
+			1,
+			#{bb_no}
+		)
+	</insert>
+	<insert id="succNotice" parameterType="AlarmVO">
+		<selectKey resultType="Integer" keyProperty="al_no" order="BEFORE">
+			SELECT ALARM_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ALARM (
+			MEM_ID1,
+			AL_NO,
+			ANNL_NO,
+			AL_DIV
+		) VALUES (
+			#{mem_id1},
+			#{al_no},
+			#{annl_no},
+			2
+		)
+	</insert>
+	<insert id="recommendNotice" parameterType="AlarmVO">
+		<selectKey resultType="Integer" keyProperty="al_no" order="BEFORE">
+			SELECT ALARM_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ALARM (
+			MEM_ID1,
+			MEM_ID2,
+			AL_NO,
+			ANNL_NO,
+			AL_DIV
+		) VALUES (
+			#{mem_id1},
+			#{mem_id2},
+			#{al_no},
+			#{annl_no},
+			3
+		)
+	</insert>
+	<insert id="followNotice" parameterType="AlarmVO">
+		<selectKey resultType="Integer" keyProperty="al_no" order="BEFORE">
+			SELECT ALARM_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ALARM (
+			MEM_ID1,
+			MEM_ID2,
+			AL_NO,
+			AL_DIV
+		) VALUES (
+			#{mem_id1},
+			#{mem_id2},
+			#{al_no},
+			4
+		)
+	</insert>
+	<select id="selectNoticeList" parameterType="String" resultType="AlarmVO">
+		<![CDATA[
+		 SELECT ROWNUM, MEM_ID1, MEM_ID2, AL_NO, AL_DIV, ANNL_NO, BB_NO, BC_TITLE, ANNL_TITLE, CNNL_TITLE, ENT_NAME
+		  FROM ( SELECT MEM_ID1, MEM_ID2, AL_NO, AL_DIV, A.ANNL_NO ANNL_NO, A.BB_NO BB_NO, BC_TITLE, ANNL_TITLE, CNNL_TITLE, ENT_NAME
+		    FROM ALARM A LEFT OUTER JOIN (
+		                        SELECT BLOG_BOARD.BB_NO, BC_TITLE
+		                        FROM BLOG_BOARD
+		                    ) BLOG_BOARD ON (A.BB_NO = BLOG_BOARD.BB_NO 
+		                        AND A.AL_DIV = '1')
+		                  LEFT OUTER JOIN (
+		                        SELECT ANNOUNCE_LIST.ANNL_NO, ANNL_TITLE
+		                        FROM ANNOUNCE_LIST
+		                    ) ANNOUNCE_LIST ON (A.ANNL_NO = ANNOUNCE_LIST.ANNL_NO 
+		                        AND A.AL_DIV = '2')
+                          LEFT OUTER JOIN (
+		                        SELECT ANNOUNCE_LIST.ANNL_NO CNNL_NO, ANNL_TITLE CNNL_TITLE, ENT_NAME
+		                        FROM ANNOUNCE_LIST LEFT OUTER JOIN (
+                                    SELECT ENT_INFO.MEM_ID, ENT_NAME
+                                    FROM ENT_INFO
+                                ) ENT_INFO ON (
+                                  ANNOUNCE_LIST.MEM_ID = ENT_INFO.MEM_ID
+                                ) 
+		                    ) ANNOUNCE_LIST ON (A.ANNL_NO = CNNL_NO 
+		                        AND A.AL_DIV = '3')
+		                  LEFT OUTER JOIN (
+		                        SELECT MEM_ID, FOLLOW_MEM
+		                        FROM FOLLOWER
+		                    ) FOLLOWER ON (A.MEM_ID1 = FOLLOWER.MEM_ID 
+		                        AND A.MEM_ID2 = FOLLOWER.FOLLOW_MEM
+		                        AND A.AL_DIV = '4')
+		WHERE A.MEM_ID1 = #{mem_id}
+		ORDER BY A.AL_NO DESC)
+		WHERE ROWNUM <=5
+		]]>
+	</select>
+</mapper>

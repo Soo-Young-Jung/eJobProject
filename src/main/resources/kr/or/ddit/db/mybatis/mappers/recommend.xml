@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.announce.dao.IRecommendDAO">
+
+	<select id="selectMyAnnounceCount" resultType="long">
+		SELECT COUNT(ANNL_NO)
+		FROM ANNOUNCE_LIST
+		WHERE MEM_ID = '${searchWord}'
+		AND ANNL_CLOSEING > SYSDATE
+	</select>
+	
+	<select id="selectMyAnnounceList" resultType="AnnounceVO">
+		SELECT B.*
+				FROM (
+				    SELECT ROWNUM RNUM, A.*
+				    FROM (
+		                SELECT
+		                    ANNOUNCE_LIST.ANNL_NO,		    ANNOUNCE_LIST.ANNL_CATEGORY,		    ANNOUNCE_LIST.ANNL_TITLE,
+		                    TO_CHAR(ANNOUNCE_LIST.ANNL_DATE, 'YYYY-MM-DD') AS ANNL_DATE,		    TO_CHAR(ANNOUNCE_LIST.ANNL_CLOSEING, 'YYYY-MM-DD') AS ANNL_CLOSEING,		    ANNOUNCE_LIST.ANNL_CAREER,
+		                    ANNOUNCE_LIST.ANNL_GENDER,		    ANNOUNCE_LIST.ANNL_SAL,		    ANNOUNCE_LIST.ANNL_ST,
+		                    ANNOUNCE_LIST.ANNL_ADDR1,		    ANNOUNCE_LIST.ANNL_FEB,		    ANNOUNCE_LIST.ANNL_HOMEPAGE,
+		                    ANNOUNCE_LIST.ANNL_OTHER,		    ANNOUNCE_LIST.MEM_ID,		    ANNOUNCE_LIST.ANNL_ADDR2,
+		                    ANNOUNCE_LIST.FINISHED, ANNOUNCE_LIST.ANNL_NUM
+		                        , TRUNC(ANNOUNCE_LIST.ANNL_CLOSEING) - TRUNC(SYSDATE) AS DDAY
+		                FROM
+		                    ANNOUNCE_LIST
+		                WHERE ANNOUNCE_LIST.MEM_ID = #{searchWord}
+		                AND ANNL_CLOSEING > SYSDATE
+		                ORDER BY ANNOUNCE_LIST.ANNL_NO DESC
+		            ) A 
+		    ) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<insert id="insertRecommend" parameterType="hashMap">
+		INSERT INTO recommend (
+		    annl_no,
+		    mem_id
+		) VALUES (
+		    #{annl_no,jdbcType=VARCHAR},
+		    #{mem_id,jdbcType=NUMERIC}
+		)
+	</insert>
+
+</mapper>

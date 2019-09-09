@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.blog.dao.IBlogDAO">
+	<insert id="insertBlog" parameterType="BlogVO">
+		INSERT  INTO BLOG(MEM_ID, BLOG_NAME, BLOG_DATE, BLOG_STATUS, BLOG_INTRODUCE)
+        VALUES(#{mem_id }, #{mem_name}||'님의 블로그', SYSDATE, 'Y', '안녕하세요. '||#{mem_name}||'입니다.')
+	</insert>
+	<select id="selectBlog" parameterType="String" resultType="BlogVO">
+		SELECT
+		BLOG.MEM_ID,
+		MEM_NAME,
+		MEM_PROFILE,
+		BLOG_NAME,
+		TO_CHAR(BLOG_DATE, 'YYYY-MM-DD') BLOG_DATE,
+		BLOG_STATUS,
+		BLOG_INTRODUCE,
+		MEM_DIV
+		FROM BLOG LEFT OUTER JOIN (
+		    SELECT MEM_ID, MEM_NAME, MEM_PROFILE, MEM_DIV
+		    FROM MEMBER
+		) MEMBER ON ( BLOG.MEM_ID = MEMBER.MEM_ID)
+		WHERE BLOG.MEM_ID = #{mem_id}
+	</select>
+	<update id="updateBlog" parameterType="BlogVO">
+		UPDATE BLOG
+		SET BLOG_INTRODUCE = #{blog_introduce},
+			BLOG_NAME = #{blog_name},
+			BLOG_STATUS = #{blog_status}
+		WHERE MEM_ID = #{mem_id}
+	</update>
+	<select id="selectFollowList" parameterType="String" resultType="FollowVO">
+		SELECT FOLLOW_MEM
+		FROM FOLLOWER
+		WHERE MEM_ID = #{mem_id}
+	</select>
+	<select id="selectLicList" parameterType="String" resultType="MemberLicVO">
+		SELECT LIC_NAME
+		  FROM MEM_LICENSE
+		 WHERE MEM_ID = #{mem_id}
+	</select>
+	<select id="selectJobStatus" parameterType="String" resultType="ResumeVO">
+		SELECT ER_JOBSEARCH,
+		CASE
+		   WHEN ER_JOBSEARCH = 1 THEN '구직준비 중'
+		   WHEN ER_JOBSEARCH = 2 THEN '구직 중'
+		   WHEN ER_JOBSEARCH = 3 THEN '재직 중'
+		   ELSE '저희도 모르겠어요'
+		END AS JOBSEARCH
+		FROM EASY_RESUME
+		WHERE MEM_ID = #{mem_id}
+		  AND ER_OPEN = 'Y'
+	</select>
+	<select id="selectBoardList" parameterType="String" resultType="BlogBoardVO">
+	<![CDATA[
+	SELECT ROWNUM, BB_NO, BC_TITLE, BC_CONTENT, BC_DATE, BC_HIT, BC_CLASS,
+			BC_VIDEO, BC_WRITER, BA_NO, BA_FILENAME, BA_SAVENAME,
+			BA_MIME, BA_FILESIZE, BA_FANCYSIZE,
+			BA_DOWNLOAD, BR_CNT
+	  FROM (SELECT A.BB_NO BB_NO, BC_TITLE, BC_CONTENT, TO_CHAR(BC_DATE, 'YYYY-MM-DD') BC_DATE, BC_HIT,
+				   BC_CLASS, BC_VIDEO, BC_WRITER, BA_NO, BA_FILENAME, BA_SAVENAME,
+				   BA_MIME, BA_FILESIZE, BA_FANCYSIZE,
+				   BA_DOWNLOAD, BR_CNT
+			  FROM BLOG_BOARD A LEFT OUTER JOIN (
+				   SELECT BLOG_CATEGORY.BC_NO, MEM_ID BC_WRITER
+				   FROM BLOG_CATEGORY
+				 ) BLOG_CATEGORY ON (
+				   A.BC_NO = BLOG_CATEGORY.BC_NO
+			     )
+				     			LEFT OUTER JOIN BLOG_ATTATCH C ON (A.BB_NO = C.BB_NO)
+								LEFT OUTER JOIN (
+										SELECT COUNT(BR_NO) BR_CNT, BB_NO
+										  FROM BLOG_REPLY
+										 GROUP BY BB_NO
+									) BLOG_REPLY ON ( A.BB_NO = BLOG_REPLY.BB_NO)
+			 WHERE BC_WRITER = #{mem_id}
+			 ORDER BY BC_DATE DESC)
+	WHERE ROWNUM <= 3
+	]]>
+	</select>
+</mapper>

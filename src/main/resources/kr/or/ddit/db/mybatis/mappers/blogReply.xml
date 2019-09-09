@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.blog.dao.IBlogReplyDAO">
+
+	<select id="selectReplyCount" parameterType="Integer" resultType="long">
+		SELECT	COUNT(*)
+		FROM	BLOG_REPLY LEFT OUTER JOIN BLOG_BOARD ON(BLOG_REPLY.BB_NO = BLOG_BOARD.BB_NO)
+		WHERE   BLOG_REPLY.BB_NO = #{searchVO.bb_no }
+	</select>
+	<insert id="insertReply" parameterType="BlogReplyVO">
+		INSERT INTO BLOG_REPLY(
+		BR_NO,
+		BB_NO,
+		BR_WRITER,
+		BR_DATE,
+		BR_CONTENT
+		) VALUES (
+		BR_SEQ.NEXTVAL,
+		#{bb_no},
+		#{br_writer},
+		SYSDATE,
+		#{br_content}
+		)
+	</insert>
+	<select id="selectReplyList" parameterType="PagingVO" resultType="BlogReplyVO">
+		SELECT  B.*
+		FROM    (SELECT ROWNUM RNUM, A.*
+				 FROM    (SELECT BR_NO, BB_NO, BR_WRITER, TO_CHAR(BR_DATE, 'YY-MM-DD') BR_DATE, BR_MAIL, BR_CONTENT
+         				  FROM   BLOG_REPLY
+         				  WHERE BB_NO = #{searchVO.bb_no }
+         				  ORDER BY BR_NO DESC
+         				  ) A
+         				  )B
+        <![CDATA[
+		WHERE	RNUM BETWEEN #{startRow} AND #{endRow}
+		]]>
+	</select>
+	<delete id="deleteReply" parameterType="BlogReplyVO">
+		DELETE FROM BLOG_REPLY
+		WHERE BR_NO = #{br_no}
+		AND BR_WRITER = #{br_writer}
+	</delete>
+</mapper>

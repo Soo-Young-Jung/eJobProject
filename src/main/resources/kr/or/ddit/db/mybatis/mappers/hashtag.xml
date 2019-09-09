@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.blog.dao.IHashtagDAO">
+	<sql id="searchFrag">
+		<where>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+				<choose>
+					<when test="searchType eq 'tag'">
+						HASHTAG LIKE #{searchWord}
+					</when>
+					<otherwise>
+						HASHTAG LIKE #{searchWord}
+					</otherwise>
+				</choose>
+			</if>
+		</where>
+	</sql>
+	<insert id="insertHashtag" parameterType="HashtagVO">
+		INSERT INTO BLOG_HASHTAG(
+			HASH_NAME,
+			BB_NO
+		)VALUES(
+			#{hash_name},
+			#{bb_no}
+		)
+	</insert>
+	<delete id="deleteHashtag" parameterType="HashtagVO">
+		DELETE 
+		FROM BLOG_HASHTAG
+		WHERE HASH_NAME = #{hash_name}
+		  AND BB_NO 	= #{bb_no}
+	</delete>
+	<select id="selectBoardHashList" parameterType="long" resultType="HashtagVO">
+		SELECT HASH_NAME,
+			   BB_NO
+		  FROM BLOG_HASHTAG
+		 WHERE BB_NO = #{bb_no}
+	</select>
+	<select id="popularHashCount" resultType="HashtagVO">
+		<![CDATA[
+		SELECT ROWNUM, HASH_NAME, BB_NO FROM(
+		SELECT B.HASH_TAG HASH_NAME, COUNT(C.BB_NO) BB_NO
+		FROM BLOG_HASHTAG C LEFT OUTER JOIN (
+		SELECT DISTINCT REGEXP_SUBSTR(A.HASH_NAME, '[^,]+', 1, LEVEL) HASH_TAG, A.BB_NO
+		FROM (SELECT HASH_NAME, BB_NO FROM BLOG_HASHTAG) A
+		CONNECT BY LEVEL <= LENGTH(REGEXP_REPLACE(A.HASH_NAME, '[^,]+',''))+1) B ON(B.BB_NO = C.BB_NO)
+		GROUP BY B.HASH_TAG
+		ORDER BY BB_NO DESC)
+		WHERE ROWNUM <=6
+		]]>
+	</select>
+	<select id="selectHashCount" parameterType="String" resultType="int">
+		SELECT COUNT(BLOG_BOARD.BB_NO) BB_CNT
+		FROM BLOG_BOARD LEFT OUTER JOIN(
+		SELECT B.HASH_NAME HASHTAG, C.BB_NO BOARD_NUM
+		FROM BLOG_HASHTAG C LEFT OUTER JOIN (
+		<![CDATA[
+		SELECT DISTINCT REGEXP_SUBSTR(A.HASH_NAME, '[^,]+', 1, LEVEL) HASH_NAME, A.BB_NO
+		FROM (SELECT HASH_NAME, BB_NO FROM BLOG_HASHTAG) A
+		CONNECT BY LEVEL <= LENGTH(REGEXP_REPLACE(A.HASH_NAME, '[^,]+',''))+1
+		) B ON(B.BB_NO = C.BB_NO)
+		) D ON(D.BOARD_NUM = BLOG_BOARD.BB_NO)
+		]]>
+		<include refid="searchFrag" />
+	</select>
+	<select id="selectHashList" parameterType="String" resultType="BlogBoardVO">
+		SELECT X.*
+		FROM (SELECT ROWNUM RNUM, T.*
+		FROM (
+		SELECT BLOG_BOARD.BB_NO BB_NO, BC_TITLE, BC_DATE, BC_HIT 
+		FROM BLOG_BOARD LEFT OUTER JOIN(
+		SELECT B.HASH_NAME HASHTAG, C.BB_NO BOARD_NUM
+		FROM BLOG_HASHTAG C LEFT OUTER JOIN (
+		<![CDATA[
+		SELECT DISTINCT REGEXP_SUBSTR(A.HASH_NAME, '[^,]+', 1, LEVEL) HASH_NAME, A.BB_NO
+		FROM (SELECT HASH_NAME, BB_NO FROM BLOG_HASHTAG) A
+		CONNECT BY LEVEL <= LENGTH(REGEXP_REPLACE(A.HASH_NAME, '[^,]+',''))+1) B ON(B.BB_NO = C.BB_NO)
+		) D ON(D.BOARD_NUM = BLOG_BOARD.BB_NO)
+		]]>
+		<include refid="searchFrag" />
+		ORDER BY BC_DATE DESC
+		) T
+		) X
+	</select>
+</mapper>

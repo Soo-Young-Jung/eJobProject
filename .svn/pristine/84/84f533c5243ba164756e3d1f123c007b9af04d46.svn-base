@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:c="http://www.springframework.org/schema/c"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd">
+
+<!-- 	RequestMappingHandlerMapping -->
+<!-- 	RequestMappingHandlerAdapter -->
+<!-- 	InternalResourceViewResolver 등록 -->
+	<mvc:annotation-driven />
+	
+<!-- 	하나의 영역을 지원하는 전략이 여러 개 등록되는 경우, -->
+<!-- 	order를 통해 우선순위를 설정해야 함. -->
+<!-- 	주의! InternalResourceViewResolver 의 우선순위는 가장 낮게 설정. -->
+	<bean id="IRVR" class="org.springframework.web.servlet.view.InternalResourceViewResolver" 
+		p:prefix="/WEB-INF/views/"
+		p:suffix=".jsp"
+	/>
+	
+	<!-- 1번째 -->
+	<bean id="BNVR" class="org.springframework.web.servlet.view.BeanNameViewResolver" 
+		p:order="2"
+	/>
+	
+	<bean id="BlogDownloadView" class="kr.or.ddit.blog.view.BlogDownloadView" />
+	
+	<bean id="TVR" class="org.springframework.web.servlet.view.tiles3.TilesViewResolver" 
+		p:order="1"
+	/>
+	
+	<bean class="org.springframework.web.servlet.view.tiles3.TilesConfigurer" 
+		p:definitions="classpath:kr/or/ddit/tiles/*.xml"
+		p:preparerFactoryClass="org.springframework.web.servlet.view.tiles3.SpringBeanPreparerFactory"
+	/>
+	
+	<mvc:default-servlet-handler/>
+	
+	<context:component-scan base-package="kr.or.ddit" use-default-filters="false">
+		<context:include-filter type="annotation"
+				expression="org.springframework.stereotype.Controller"/>
+		<context:include-filter type="annotation" 
+				expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+		<context:include-filter type="annotation" 
+				expression="kr.or.ddit.common.Preparer"/>
+	</context:component-scan>
+
+	<!-- 주의! id="messageSource" -->
+	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource" 
+		p:basename="kr.or.ddit.msg.message"
+	/>
+	
+	<!-- 파일 업로드 처리를 위한 전략 등록 -->
+<!-- 	1. servlet 3.0 -->
+<!-- 		1) DispatcherServlet 에 multipart-config 설정(web.xml). -->
+<!-- 		2) StandardServletMultipartResolver 를 등록. -->
+<!-- 	2. servlet 2.5 -->
+<!-- 		1) commons-fileupload 를 빌드패스에 추가 -->
+<!-- 		2) CommonsMultipartResolver를 등록. -->
+<!-- 	주의! id="multipartResolver" -->
+<!-- 	<bean id="multipartResolver" class="org.springframework.web.multipart.support.StandardServletMultipartResolver"></bean> -->
+
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver" 
+		p:defaultEncoding="UTF-8"
+		p:maxInMemorySize="#{10*1024}"
+		p:maxUploadSize="#{100*1024*1024}"
+		p:maxUploadSizePerFile="#{10*1024*1024}"
+	/>
+	
+	<bean id="webContentInterceptor" class="org.springframework.web.servlet.mvc.WebContentInterceptor" 
+		p:cacheSeconds="0"
+		p:useCacheControlHeader="true"
+		p:useCacheControlNoStore="true"
+		p:useExpiresHeader="true"
+	/>
+	<bean id="validator" class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean" />
+
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/**/**/*.js"/>
+			<ref bean="webContentInterceptor"/>
+		</mvc:interceptor>
+	</mvc:interceptors>
+	
+<!-- 	<mvc:view-controller path="/licenseview" view-name="template"/> -->
+	<mvc:view-controller path="/bloghome" view-name="hwtemplate"/>
+	<mvc:view-controller path="/blogmain" view-name="blogmaintemplate"/>
+	
+	
+</beans>

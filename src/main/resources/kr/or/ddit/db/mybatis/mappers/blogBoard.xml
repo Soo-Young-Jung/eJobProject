@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.blog.dao.IBlogBoardDAO">
+	<sql id="searchFrag">
+		<where>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+				<choose>
+					<when test="searchType eq 'title'">
+						BC_TITLE LIKE '%'||#{searchWord}||'%'
+					</when>
+					<when test="searchType eq 'content'">
+						BC_CONTENT LIKE '%'||#{searchWord}||'%'
+					</when>
+					<otherwise>
+						BC_TITLE LIKE '%'||#{searchWord}||'%'
+						OR BC_CONTENT LIKE '%'||#{searchWord}||'%'
+					</otherwise>
+				</choose>
+			</if>
+		</where>
+	</sql>
+	<insert id="insertBlogBoard" parameterType="BlogBoardVO">
+		<selectKey resultType="Integer" keyProperty="bb_no" order="BEFORE">
+			SELECT BLOG_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO BLOG_BOARD (
+		BB_NO,
+		BC_NO,
+		BC_TITLE,
+		BC_CONTENT,
+		BC_DATE,
+		BC_HIT,
+		BC_CLASS,
+		BC_VIDEO
+		) VALUES (
+		#{bb_no}, #{bc_no}, 
+		#{bc_title},
+		#{bc_content},
+		SYSDATE,
+		0,
+		0,
+		#{bc_video}
+		)
+	</insert>
+	<update id="updateBlogBoard" parameterType="BlogBoardVO">
+		UPDATE BLOG_BOARD
+	    SET
+		    BC_TITLE	=		#{bc_title},
+		    BC_CONTENT	=		#{bc_content},
+		    BC_VIDEO    =       #{bc_video}
+		WHERE	BB_NO	=		#{bb_no}
+	</update>
+	<delete id="deleteBlogBoard" statementType="CALLABLE">
+		{ CALL DELETEBLOGBOARD(#{bb_no,mode=IN}, #{rowcnt,mode=OUT,jdbcType=INTEGER}) }
+	</delete>
+	<select id="selectBoardList" parameterType="hashmap" resultType="BlogBoardVO">
+		SELECT B.*
+		FROM (
+		    SELECT ROWNUM RNUM, A.*
+		    FROM (
+		    	<![CDATA[
+		        SELECT BLOG_BOARD.BB_NO, 
+		               BC_TITLE, 
+				       TO_CHAR(BC_DATE, 'YYYY-MM-DD') BC_DATE, BC_HIT, BR_CNT, BC_NO
+				FROM BLOG_BOARD LEFT OUTER JOIN (
+				    SELECT COUNT(BR_NO) BR_CNT, BB_NO
+				    FROM BLOG_REPLY
+				    GROUP BY BB_NO
+				) BLOG_REPLY ON ( BLOG_BOARD.BB_NO = BLOG_REPLY.BB_NO)
+				]]>
+				WHERE BC_NO = #{bc_no}
+				ORDER BY BLOG_BOARD.BB_NO DESC
+		    ) A 
+			<include refid="searchFrag" />
+		) B
+		WHERE RNUM BETWEEN #{pagingVO.startRow} AND #{pagingVO.endRow}
+	</select>
+	<select id="selectBoardCount" parameterType="hashmap" resultType="long">
+		SELECT COUNT(*)
+		FROM (
+		SELECT BC_NO
+		FROM BLOG_BOARD
+		<include refid="searchFrag" />
+		) A
+		WHERE A.BC_NO = #{bc_no}
+	</select>
+	<resultMap type="BlogBoardVO" id="blogboardMap" autoMapping="true">
+		<id property="bb_no" column="BBNO"/>
+<!-- 		<collection property="replyList" ofType="ReplyVO"  -->
+<!-- 			select="selectReplyListByBo_No" column="BO_NO" -->
+<!-- 		/> -->
+		<collection property="attatchList" ofType="BlogBoardAttatchVO" autoMapping="true">
+			
+		</collection>
+	</resultMap>
+	<select id="selectBoard" resultMap="blogboardMap">
+		SELECT  A.BB_NO BBNO,    BC_TITLE,	A.BC_NO,
+			    BC_CONTENT,    TO_CHAR(BC_DATE, 'YYYY-MM-DD') BC_DATE,    BC_HIT
+			    , BC_VIDEO,  	BA_NO,    BA_FILENAME,    BA_SAVENAME,
+				    BA_MIME,    BA_FILESIZE,    BA_FANCYSIZE,
+				    BA_DOWNLOAD, BR_CNT, BC_MEM
+		FROM  BLOG_BOARD A LEFT OUTER JOIN BLOG_ATTATCH C ON (A.BB_NO = C.BB_NO)
+						   LEFT OUTER JOIN (
+					    	   SELECT COUNT(BR_NO) BR_CNT, BB_NO
+							     FROM BLOG_REPLY
+							    GROUP BY BB_NO
+							) BLOG_REPLY ON ( A.BB_NO = BLOG_REPLY.BB_NO)
+						   LEFT OUTER JOIN (
+                               SELECT BLOG_CATEGORY.BC_NO,
+                                      BLOG_CATEGORY.MEM_ID BC_MEM
+                                 FROM BLOG_CATEGORY
+                           ) BLOG_CATEGORY ON ( A.BC_NO = BLOG_CATEGORY.BC_NO )
+		WHERE A.BB_NO = #{bb_no}
+	</select>
+	<update id="increamentHit" parameterType="long">
+		UPDATE BLOG_BOARD
+		SET
+		BC_HIT = BC_HIT + 1
+		WHERE BB_NO = #{bb_no}
+	</update>
+	<select id="famousBlogBoardList" resultType="BlogBoardVO">
+		<![CDATA[
+		SELECT ROWNUM, A.*
+		FROM (SELECT BB_NO, BLOG_BOARD.BC_NO, SUBSTR(BC_TITLE, 1, 7) BC_TITLE, BC_HIT, BC_WRITER
+		FROM BLOG_BOARD LEFT OUTER JOIN (
+		    SELECT BC_NO, MEM_ID BC_WRITER
+		    FROM BLOG_CATEGORY
+		) BLOG_CATEGORY ON (
+		    BLOG_BOARD.BC_NO = BLOG_CATEGORY.BC_NO
+		)
+		ORDER BY BC_HIT DESC) A
+		WHERE ROWNUM <=6
+		]]>
+	</select>
+</mapper>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.suggestion.dao.ISuggestionDAO">
+	
+	
+	
+
+	
+	
+	
+	
+	<select id="selectSuggestionCount" parameterType="PagingVO" resultType="long">
+		SELECT COUNT(*)
+		FROM suggestion_board
+	
+	</select>
+	<select id="selectSuggestionList" parameterType="PagingVO" resultType="SuggestionVO">
+		WITH ORDEREDSUGGESTION AS
+		(
+			SELECT 
+					SUG_NO,
+					SUG_TITLE,
+					SUG_CONTENT,
+					SUG_PARENT,
+					TO_CHAR(SUG_DATE, 'YYYY-MM-DD') SUG_DATE,
+					MEM_ID,
+					SUG_DEPTH
+			FROM suggestion_board
+			START WITH SUG_PARENT IS NULL
+			CONNECT BY PRIOR SUG_NO = SUG_PARENT
+			ORDER SIBLINGS BY SUG_NO DESC	    
+			
+		)
+		SELECT *
+		FROM (
+			SELECT ROWNUM RNUM, ORDEREDSUGGESTION.* 
+			FROM ORDEREDSUGGESTION
+		)	
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	<insert id="insertSuggestion" parameterType="SuggestionVO">
+		INSERT INTO suggestion_board(
+			SUG_NO,
+			SUG_TITLE,
+			SUG_CONTENT,
+		
+			SUG_DATE,
+			MEM_ID
+
+		  <if test="sug_parent gt 0 and sug_depth gt 1">	
+			    , SUG_PARENT
+			    , SUG_DEPTH
+		    </if>
+		)
+		values(
+			suggestion_SEQ.nextval, #{sug_title}, #{sug_content},
+			SYSDATE, #{mem_id}
+			<if test="sug_parent gt 0 and sug_depth gt 1">	    
+			    , #{sug_parent,jdbcType=NUMERIC}		    
+			    , #{sug_depth,jdbcType=NUMERIC}
+		    </if> 
+		)
+	</insert>
+	
+	<update id="updateSuggestion" parameterType="SuggestionVO">
+		UPDATE suggestion_board
+		   SET 
+		       SUG_TITLE = #{sug_title},
+		       SUG_CONTENT = #{sug_content},
+		       SUG_DATE = sysdate
+		 
+		     
+		 WHERE SUG_NO= #{sug_no}      
+	</update>
+	
+<select id="selectSuggestion" resultType="SuggestionVO" parameterType="int" >
+	
+	SELECT * FROM suggestion_board where sug_no= #{sug_no}
+</select>
+	
+	
+	
+<select id="reply" resultType="SuggestionVO" parameterType="int">
+	 
+		 SELECT * FROM suggestion_board
+		WHERE SUG_PARENT = #{sug_no}
+         ORDER BY SUG_DATE
+</select>
+<delete id="deleteSuggestion" parameterType="SuggestionVO">
+	DELETE FROM suggestion_board
+		WHERE  SUG_NO IN (
+				SELECT SUG_NO FROM suggestion_board 
+				START WITH SUG_NO = #{sug_no}
+				CONNECT BY PRIOR SUG_NO = SUG_PARENT
+			)
+
+</delete>
+<select id="cnt" resultType="int">
+	SELECT COUNT(*) FROM suggestion_board where sug_depth=1
+</select>
+
+
+
+	
+	
+<!-- 	<delete id="deleteSuggestion" parameterType="SuggestionVO"> -->
+<!-- 		DELETE suggestion_board -->
+<!-- 		 WHERE gb_no IN (SELECT gb_no  -->
+<!--                                        FROM guestbook  -->
+<!--                                       START WITH gb_no = #{gb_no} -->
+<!--                                       CONNECT BY PRIOR gb_no = gb_parent -->
+<!--                                     ) -->
+<!-- 	</delete> -->
+</mapper>

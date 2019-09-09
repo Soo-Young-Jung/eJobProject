@@ -1,0 +1,554 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.announce.dao.IAnnounceDAO">
+
+	<sql id="searchFrag">
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchAddr)">
+				AND ANNOUNCE_LIST.ANNL_ADDR1 LIKE '%'||#{searchAddr}||'%'
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchWord)">
+				<choose>
+					<when test="searchType eq 'title'">
+					AND ANNOUNCE_LIST.ANNL_TITLE LIKE '%'||#{searchWord}||'%'
+					</when>
+					<when test="searchType eq 'ent'">
+					AND ENT_INFO.ENT_NAME LIKE '%'||#{searchWord}||'%'
+					</when>
+					<otherwise>
+					AND ANNOUNCE_LIST.ANNL_TITLE LIKE '%'||#{searchWord}||'%'
+					OR ENT_INFO.ENT_NAME LIKE '%'||#{searchWord}||'%'
+					</otherwise>
+				</choose>
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchST)">
+				AND ANNOUNCE_LIST.ANNL_ST = #{searchST}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchFEB)">
+				AND ANNOUNCE_LIST.ANNL_FEB >= #{searchFEB}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchCareer)">
+				AND ANNOUNCE_LIST.ANNL_CAREER >= #{searchCareer}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchApp)">
+				AND APPLICANT_LIST.MEM_ID = #{searchApp}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchCategory)">
+				AND ANNOUNCE_LIST.ANNL_CATEGORY = #{searchCategory}
+			</if>
+	</sql>
+	
+	
+	<select id="selectAnnounceCount" resultType="long">
+		SELECT COUNT(ANNL_NO)
+		FROM ANNOUNCE_LIST INNER JOIN MEMBER ON (ANNOUNCE_LIST.MEM_ID = MEMBER.MEM_ID)
+		                    INNER JOIN ENT_INFO ON (ANNOUNCE_LIST.MEM_ID = ENT_INFO.MEM_ID)
+		WHERE 1 = 1
+		AND ANNOUNCE_LIST.ANNL_CLOSEING > SYSDATE
+		AND ANNOUNCE_LIST.FINISHED = 'N'
+		AND ANNOUNCE_LIST.ISDEL = 'N'
+		<include refid="searchFrag"/>
+	</select>
+	
+	<select id="selectAnnounceCountForMy" resultType="long">
+		SELECT COUNT(ANNL_NO)
+		FROM ANNOUNCE_LIST
+		WHERE MEM_ID = '${mem_id}'
+		AND ANNOUNCE_LIST.ISDEL = 'N'
+	</select>
+	
+	
+<!-- 	특정 공고에 지원한 유저 수 -->
+	<select id="selectApplicantCount" resultType="long">
+		SELECT
+		   COUNT(APPLICANT_LIST.ANNL_NO)
+		FROM
+		     APPLICANT_LIST LEFT OUTER JOIN ANNOUNCE_LIST ON (ANNOUNCE_LIST.ANNL_NO = APPLICANT_LIST.ANNL_NO)
+		WHERE APPLICANT_LIST.ANNL_NO = #{searchWord}
+	</select>
+	
+<!-- 	특정 공고에 지원한 유저 리스트 -->
+	<select id="selectApplicantMemberList" resultType="ApplicantMemberVO">
+		SELECT B.*
+				FROM (
+				    SELECT ROWNUM RNUM, A.*
+				    FROM (
+		                SELECT
+		                   MEMBER.MEM_ID,	MEMBER.MEM_NAME,
+		                   		EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM TO_DATE(EASY_RESUME.ER_AGE, 'YYYYMMDD')) AS ER_AGE,
+                                EASY_RESUME.ER_GENDER,	EASY_RESUME.ER_CAREER, ER_NO
+		                FROM
+                             APPLICANT_LIST LEFT OUTER JOIN ANNOUNCE_LIST ON (ANNOUNCE_LIST.ANNL_NO = APPLICANT_LIST.ANNL_NO)
+                            INNER JOIN MEMBER ON (APPLICANT_LIST.MEM_ID = MEMBER.MEM_ID)
+                            INNER JOIN EASY_RESUME ON (APPLICANT_LIST.MEM_ID = EASY_RESUME.MEM_ID)
+		                WHERE APPLICANT_LIST.ANNL_NO = #{searchWord}
+                        AND EASY_RESUME.ER_OPEN = 'Y'
+                        ) A 
+		    ) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<select id="selectAnnounceCountForMyOnGoing1" resultType="int">
+		SELECT COUNT(ANNL_NO)
+		FROM ANNOUNCE_LIST
+		WHERE MEM_ID = #{mem_id}
+		AND ANNOUNCE_LIST.ISDEL = 'N'
+		AND ANNOUNCE_LIST.FINISHED = 'N'
+        AND ANNOUNCE_LIST.ANNL_CATEGORY = 'N'
+	</select>
+	
+	<select id="selectAnnounceCountForMyOnGoing2" resultType="int">
+	SELECT COUNT(ANNL_NO)
+		FROM ANNOUNCE_LIST
+		WHERE MEM_ID = #{mem_id}
+		AND ANNOUNCE_LIST.ISDEL = 'N'
+        AND ANNOUNCE_LIST.ANNL_CLOSEING > SYSDATE
+        AND ANNOUNCE_LIST.ANNL_CATEGORY = 'Y'
+	</select>
+	
+	<select id="selectAnnounceCountForEnd1" resultType="int">
+	SELECT COUNT(ANNL_NO)
+		FROM ANNOUNCE_LIST
+		WHERE MEM_ID = #{mem_id}
+		AND ANNOUNCE_LIST.ISDEL = 'N'
+		AND ANNOUNCE_LIST.FINISHED = 'Y'
+		AND ANNOUNCE_LIST.ANNL_CATEGORY = 'N'
+	</select>
+	
+	<select id="selectAnnounceCountForEnd2" resultType="int">
+		<![CDATA[
+		SELECT COUNT(ANNL_NO)
+		FROM ANNOUNCE_LIST
+		WHERE MEM_ID = #{mem_id}
+		AND ANNOUNCE_LIST.ISDEL = 'N'
+        AND ANNOUNCE_LIST.ANNL_CLOSEING < SYSDATE
+        AND ANNOUNCE_LIST.ANNL_CATEGORY = 'Y'
+        ]]>
+	</select>
+	
+	
+<!-- 	현재 모집중인 모든 공고 리스트 -->
+	<select id="selectAnnounceList" resultType="AnnounceVO">
+		SELECT B.*
+				FROM (
+				    SELECT ROWNUM RNUM, A.*
+				    FROM (
+		                SELECT
+		                    ANNOUNCE_LIST.ANNL_NO,		    ANNOUNCE_LIST.ANNL_CATEGORY,		    ANNOUNCE_LIST.ANNL_TITLE,
+		                    TO_CHAR(ANNOUNCE_LIST.ANNL_DATE, 'YYYY-MM-DD') AS ANNL_DATE,		    TO_CHAR(ANNOUNCE_LIST.ANNL_CLOSEING, 'YYYY-MM-DD') AS ANNL_CLOSEING,		    ANNOUNCE_LIST.ANNL_CAREER,
+		                    ANNOUNCE_LIST.ANNL_GENDER,		    ANNOUNCE_LIST.ANNL_SAL,		    ANNOUNCE_LIST.ANNL_ST,
+		                    ANNOUNCE_LIST.ANNL_ADDR1,		    ANNOUNCE_LIST.ANNL_FEB,		    ANNOUNCE_LIST.ANNL_HOMEPAGE,
+		                    ANNOUNCE_LIST.ANNL_OTHER,		    ANNOUNCE_LIST.MEM_ID,		    ANNOUNCE_LIST.ANNL_ADDR2,
+		                    ANNOUNCE_LIST.FINISHED, ANNOUNCE_LIST.ANNL_NUM
+		                    	, MEMBER.MEM_PROFILE
+		                        , ENT_INFO.ENT_NAME
+		                        , TRUNC(ANNOUNCE_LIST.ANNL_CLOSEING) - TRUNC(SYSDATE) AS DDAY
+		                        , NVL(SCRAP_CNT, 0) AS SCRAPCOUNT
+		                FROM
+		                    ANNOUNCE_LIST INNER JOIN MEMBER ON (ANNOUNCE_LIST.MEM_ID = MEMBER.MEM_ID)
+		                    INNER JOIN ENT_INFO ON (ANNOUNCE_LIST.MEM_ID = ENT_INFO.MEM_ID)
+		                    LEFT OUTER JOIN (
+                                SELECT COUNT(SCRAP.MEM_ID) SCRAP_CNT, ANNL_NO
+                                FROM SCRAP
+                                GROUP BY ANNL_NO
+                            ) SCRAP ON (ANNOUNCE_LIST.ANNL_NO = SCRAP.ANNL_NO)
+		                WHERE 1 = 1
+		                AND ANNOUNCE_LIST.ANNL_CLOSEING > SYSDATE
+		                AND ANNOUNCE_LIST.FINISHED = 'N'
+		                AND ANNOUNCE_LIST.ISDEL = 'N'
+						<include refid="searchFrag"/>
+		                ORDER BY ANNOUNCE_LIST.ANNL_NO DESC
+		            ) A 
+		    ) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+<!-- 	특정 유저가 지원한 모든 공고 리스트 -->
+	<select id="selectAnnounceListForApp" resultType="AnnounceVO">
+				SELECT B.*
+				FROM (
+				    SELECT ROWNUM RNUM, A.*
+				    FROM (
+		                SELECT
+		                    ANNOUNCE_LIST.ANNL_NO,		    ANNOUNCE_LIST.ANNL_CATEGORY,		    ANNOUNCE_LIST.ANNL_TITLE,
+		                    TO_CHAR(ANNOUNCE_LIST.ANNL_DATE, 'YYYY-MM-DD') AS ANNL_DATE,		    TO_CHAR(ANNOUNCE_LIST.ANNL_CLOSEING, 'YYYY-MM-DD') AS ANNL_CLOSEING,		    ANNOUNCE_LIST.ANNL_CAREER,
+		                    ANNOUNCE_LIST.ANNL_GENDER,		    ANNOUNCE_LIST.ANNL_SAL,		    ANNOUNCE_LIST.ANNL_ST,
+		                    ANNOUNCE_LIST.ANNL_ADDR1,		    ANNOUNCE_LIST.ANNL_FEB,		    ANNOUNCE_LIST.ANNL_HOMEPAGE,
+		                    ANNOUNCE_LIST.ANNL_OTHER,		    ANNOUNCE_LIST.MEM_ID,		    ANNOUNCE_LIST.ANNL_ADDR2,
+		                    ANNOUNCE_LIST.FINISHED, ANNOUNCE_LIST.ANNL_NUM
+		                    	, MEMBER.MEM_PROFILE
+		                        , ENT_INFO.ENT_NAME
+		                        , TRUNC(ANNOUNCE_LIST.ANNL_CLOSEING) - TRUNC(SYSDATE) AS DDAY
+		                        , NVL(SCRAP_CNT, 0) AS SCRAPCOUNT
+		                FROM
+		                    ANNOUNCE_LIST INNER JOIN MEMBER ON (ANNOUNCE_LIST.MEM_ID = MEMBER.MEM_ID)
+		                    INNER JOIN ENT_INFO ON (ANNOUNCE_LIST.MEM_ID = ENT_INFO.MEM_ID)
+		                    LEFT OUTER JOIN APPLICANT_LIST ON (ANNOUNCE_LIST.ANNL_NO = APPLICANT_LIST.ANNL_NO)
+		                    LEFT OUTER JOIN (
+                                SELECT COUNT(SCRAP.MEM_ID) SCRAP_CNT, ANNL_NO
+                                FROM SCRAP
+                                GROUP BY ANNL_NO
+                            ) SCRAP ON (ANNOUNCE_LIST.ANNL_NO = SCRAP.ANNL_NO)
+		                WHERE 1 = 1
+		                AND ANNOUNCE_LIST.ISDEL = 'N'
+						<include refid="searchFrag"/>
+		                ORDER BY ANNOUNCE_LIST.ANNL_NO DESC
+		            ) A 
+		    ) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<select id="selectAnnounceListForMy" resultType="AnnounceVO">
+		SELECT B.*
+				FROM (
+				    SELECT ROWNUM RNUM, A.*
+				    FROM (
+		                SELECT
+		                    ANNOUNCE_LIST.ANNL_NO,		    ANNOUNCE_LIST.ANNL_CATEGORY,		    ANNOUNCE_LIST.ANNL_TITLE,
+		                    TO_CHAR(ANNOUNCE_LIST.ANNL_DATE, 'YYYY-MM-DD') AS ANNL_DATE,		    TO_CHAR(ANNOUNCE_LIST.ANNL_CLOSEING, 'YYYY-MM-DD') AS ANNL_CLOSEING,		    ANNOUNCE_LIST.ANNL_CAREER,
+		                    ANNOUNCE_LIST.ANNL_GENDER,		    ANNOUNCE_LIST.ANNL_SAL,		    ANNOUNCE_LIST.ANNL_ST,
+		                    ANNOUNCE_LIST.ANNL_ADDR1,		    ANNOUNCE_LIST.ANNL_FEB,		    ANNOUNCE_LIST.ANNL_HOMEPAGE,
+		                    ANNOUNCE_LIST.ANNL_OTHER,		    ANNOUNCE_LIST.MEM_ID,		    ANNOUNCE_LIST.ANNL_ADDR2,
+		                    ANNOUNCE_LIST.FINISHED, ANNOUNCE_LIST.ANNL_NUM
+		                        , TRUNC(ANNOUNCE_LIST.ANNL_CLOSEING) - TRUNC(SYSDATE) AS DDAY
+		                FROM
+		                    ANNOUNCE_LIST
+		                WHERE ANNOUNCE_LIST.MEM_ID = #{mem_id}
+		                AND ANNOUNCE_LIST.ISDEL = 'N'
+		                ORDER BY ANNOUNCE_LIST.ANNL_NO DESC
+		            ) A 
+		    ) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+<!-- 	공고 권유용 리스트 카운터 -->
+	<select id="selectAnnounceCountForRec" resultType="long">
+		SELECT COUNT(ANNL_NO)
+		FROM ANNOUNCE_LIST
+		WHERE MEM_ID = '${mem_id}'
+		AND ANNOUNCE_LIST.ANNL_CLOSEING > SYSDATE
+		AND ANNOUNCE_LIST.FINISHED = 'N'
+		AND ANNOUNCE_LIST.ISDEL = 'N'
+	</select>
+	
+<!-- 	공고 권유용 리스트 -->
+	<select id="selectAnnounceListForRec" resultType="AnnounceVO">
+		SELECT B.*
+				FROM (
+				    SELECT ROWNUM RNUM, A.*
+				    FROM (
+		                SELECT
+		                    ANNOUNCE_LIST.ANNL_NO,		    ANNOUNCE_LIST.ANNL_CATEGORY,		    ANNOUNCE_LIST.ANNL_TITLE,
+		                    TO_CHAR(ANNOUNCE_LIST.ANNL_DATE, 'YYYY-MM-DD') AS ANNL_DATE,		    TO_CHAR(ANNOUNCE_LIST.ANNL_CLOSEING, 'YYYY-MM-DD') AS ANNL_CLOSEING,		    ANNOUNCE_LIST.ANNL_CAREER,
+		                    ANNOUNCE_LIST.ANNL_GENDER,		    ANNOUNCE_LIST.ANNL_SAL,		    ANNOUNCE_LIST.ANNL_ST,
+		                    ANNOUNCE_LIST.ANNL_ADDR1,		    ANNOUNCE_LIST.ANNL_FEB,		    ANNOUNCE_LIST.ANNL_HOMEPAGE,
+		                    ANNOUNCE_LIST.ANNL_OTHER,		    ANNOUNCE_LIST.MEM_ID,		    ANNOUNCE_LIST.ANNL_ADDR2,
+		                    ANNOUNCE_LIST.FINISHED, ANNOUNCE_LIST.ANNL_NUM
+		                        , TRUNC(ANNOUNCE_LIST.ANNL_CLOSEING) - TRUNC(SYSDATE) AS DDAY
+		                FROM
+		                    ANNOUNCE_LIST
+		                WHERE ANNOUNCE_LIST.MEM_ID = #{mem_id}
+		                AND ANNOUNCE_LIST.ANNL_CLOSEING > SYSDATE
+		                AND ANNOUNCE_LIST.FINISHED = 'N'
+		                AND ANNOUNCE_LIST.ISDEL = 'N'
+		                ORDER BY ANNOUNCE_LIST.ANNL_NO DESC
+		            ) A 
+		    ) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+		
+	<resultMap type="AnnounceVO" id="announceMap" autoMapping="true" >
+		<id property="annl_no" column="ANNL_NO"/>
+		<collection property="licenseList" ofType="LicenseVO" autoMapping="true" />
+	</resultMap>
+	
+	<select id="selectAnnounce"  resultMap="announceMap">
+		SELECT
+			    ANNOUNCE_LIST.ANNL_NO,		    ANNOUNCE_LIST.ANNL_CATEGORY,		    ANNOUNCE_LIST.ANNL_TITLE,
+			    TO_CHAR(ANNOUNCE_LIST.ANNL_DATE, 'YYYY-MM-DD') AS ANNL_DATE,		    TO_CHAR(ANNOUNCE_LIST.ANNL_CLOSEING, 'YYYY-MM-DD') AS ANNL_CLOSEING,		    ANNOUNCE_LIST.ANNL_CAREER,
+			    ANNOUNCE_LIST.ANNL_GENDER,		    ANNOUNCE_LIST.ANNL_SAL,		    ANNOUNCE_LIST.ANNL_ST,
+			    ANNOUNCE_LIST.ANNL_ADDR1,		    ANNOUNCE_LIST.ANNL_FEB,		    ANNOUNCE_LIST.ANNL_HOMEPAGE,
+			    ANNOUNCE_LIST.ANNL_OTHER,		    ANNOUNCE_LIST.MEM_ID,		    ANNOUNCE_LIST.ANNL_ADDR2,
+			    ANNOUNCE_LIST.FINISHED,				ANNOUNCE_LIST.ANNL_NUM
+			    	, CERTIFICATE.CER_NAME
+			        , TRUNC(ANNOUNCE_LIST.ANNL_CLOSEING) - TRUNC(SYSDATE) AS DDAY
+			        , MEMBER.MEM_PROFILE
+		FROM
+			    ANNOUNCE_LIST LEFT OUTER JOIN CERTIFICATE ON (ANNOUNCE_LIST.ANNL_NO = CERTIFICATE.ANNL_NO)
+			    INNER JOIN MEMBER ON (ANNOUNCE_LIST.MEM_ID = MEMBER.MEM_ID)
+		WHERE ANNOUNCE_LIST.ANNL_NO = #{annl_no}
+	</select>
+	
+	
+	<insert id="insertAnnounce" parameterType="AnnounceVO">
+		<selectKey resultType="Integer" keyProperty="annl_no" order="BEFORE">
+			SELECT ANNL_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO announce_list (
+		    annl_no,		    annl_category,		    annl_title,
+		    annl_date,		    annl_closeing,		    annl_career,
+		    annl_gender,		    annl_sal,		    annl_st,
+		    annl_addr1,		    annl_feb,		    annl_homepage,
+		    annl_other,		    mem_id,		    annl_addr2
+		) VALUES (
+		    #{annl_no,jdbcType=VARCHAR},			#{annl_category,jdbcType=CHAR},		#{annl_title,jdbcType=VARCHAR},
+		    SYSDATE,		TO_DATE(#{annl_closeing}, 'YYYY-MM-DD'),		#{annl_career,jdbcType=NUMERIC},
+		    #{annl_gender,jdbcType=VARCHAR},		#{annl_sal,jdbcType=VARCHAR},			#{annl_st,jdbcType=VARCHAR},
+		    #{annl_addr1,jdbcType=VARCHAR},		#{annl_feb,jdbcType=VARCHAR},			#{annl_homepage,jdbcType=VARCHAR},
+		    #{annl_other,jdbcType=CLOB},		#{mem_id,jdbcType=VARCHAR},				#{annl_addr2,jdbcType=VARCHAR}
+		)
+	</insert>
+	<update id="updateAnnounce" parameterType="AnnounceVO">
+		UPDATE ANNOUNCE_LIST
+		    SET
+		        ANNL_TITLE = #{annl_title,jdbcType=VARCHAR},
+		        ANNL_CAREER = #{annl_career,jdbcType=NUMERIC},
+		        ANNL_GENDER = #{annl_gender,jdbcType=VARCHAR},
+		        ANNL_SAL = #{annl_sal,jdbcType=VARCHAR},
+		        ANNL_ST = #{annl_st,jdbcType=VARCHAR},
+		        ANNL_ADDR1 = #{annl_addr1,jdbcType=VARCHAR},
+		        ANNL_ADDR2 = #{annl_addr2,jdbcType=VARCHAR},
+		        ANNL_FEB = #{annl_feb,jdbcType=VARCHAR},
+		        ANNL_OTHER = #{annl_other,jdbcType=CLOB},
+		        ANNL_NUM = #{annl_num,jdbcType=NUMERIC},
+		        ANNL_HOMEPAGE = #{annl_homepage,jdbcType=VARCHAR}
+		WHERE
+		    ANNL_NO = #{annl_no}
+		    AND   MEM_ID = #{mem_id}
+	</update>
+		
+		    
+<!-- 	<delete id="deleteAnnounce" parameterType="AnnounceVO"> -->
+<!-- 		DELETE FROM ANNOUNCE_LIST -->
+<!-- 		WHERE -->
+<!-- 		    ANNL_NO = #{annl_no} -->
+<!-- 		    AND   MEM_ID = #{mem_id} -->
+<!-- 	</delete> -->
+	<update id="deleteAnnounce">
+		UPDATE ANNOUNCE_LIST
+		    SET
+		        ISDEL = 'Y'
+		WHERE
+		    ANNL_NO = #{annl_no}
+	</update>
+	
+	<select id="selectChartData" resultType="hashMap">
+		SELECT 
+		    COUNT(*) AS TOTAL,
+		    COUNT(CASE WHEN ER_GENDER = 'M' THEN 1 END) AS M,
+		    COUNT(CASE WHEN ER_GENDER = 'F' THEN 1 END) AS F,
+		    COUNT(CASE WHEN ER_FEB = '1' THEN 1 END) AS PRI,
+		    COUNT(CASE WHEN ER_FEB = '2' THEN 1 END) AS MIDDLE,
+		    COUNT(CASE WHEN ER_FEB = '3' THEN 1 END) AS HIGH,
+		    COUNT(CASE WHEN ER_FEB = '4' THEN 1 END) AS COLLEGE
+		FROM
+		    APPLICANT_LIST LEFT OUTER JOIN EASY_RESUME ON (APPLICANT_LIST.MEM_ID = EASY_RESUME.MEM_ID)
+		WHERE ANNL_NO = #{annl_no}
+        AND ER_OPEN = 'Y'
+	</select>
+	
+	<select id="selectApplicant" parameterType="hashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM 
+			APPLICANT_LIST
+		WHERE 
+			ANNL_NO = #{annl_no} AND MEM_ID = #{mem_id}
+	</select>
+	
+	<insert id="insertApplicant" parameterType="hashMap">
+		INSERT INTO APPLICANT_LIST
+		(
+			ANNL_NO, MEM_ID
+		) VALUES (
+			#{annl_no,jdbcType=NUMERIC}, #{mem_id}
+		)
+	</insert>
+	
+	
+	
+	<select id="selectScrapCount" resultType="int">
+		SELECT COUNT(ANNL_NO)
+		FROM 
+			SCRAP LEFT OUTER JOIN ANNOUNCE_LIST ON(SCRAP.ANNL_NO = ANNOUNCE_LIST.ANNL_NO)
+		WHERE
+			SCRAP.MEM_ID = #{searchId}
+		   AND ANNOUNCE_LIST.ISDEL = 'N'
+	</select>
+		
+	
+	<select id="appCount" resultType="int">
+		SELECT  COUNT(MEM_ID)
+		FROM    APPLICANT_LIST
+		WHERE   MEM_ID = #{mem_id}
+	</select>
+	
+	
+	<select id="selectScrapList" resultType="AnnounceVO">
+		    SELECT B.*
+				FROM (
+				    SELECT ROWNUM RNUM, A.*
+				    FROM (
+		                SELECT
+						    ANNOUNCE_LIST.ANNL_NO,		    ANNOUNCE_LIST.ANNL_CATEGORY,		    ANNOUNCE_LIST.ANNL_TITLE,
+							TO_CHAR(ANNOUNCE_LIST.ANNL_DATE, 'YYYY-MM-DD') AS ANNL_DATE,		    TO_CHAR(ANNOUNCE_LIST.ANNL_CLOSEING, 'YYYY-MM-DD') AS ANNL_CLOSEING,		    ANNOUNCE_LIST.ANNL_CAREER,
+							ANNOUNCE_LIST.ANNL_GENDER,		    ANNOUNCE_LIST.ANNL_SAL,		    ANNOUNCE_LIST.ANNL_ST,
+							ANNOUNCE_LIST.ANNL_ADDR1,		    ANNOUNCE_LIST.ANNL_FEB,		    ANNOUNCE_LIST.ANNL_HOMEPAGE,
+							ANNOUNCE_LIST.ANNL_OTHER,		    ANNOUNCE_LIST.MEM_ID,		    ANNOUNCE_LIST.ANNL_ADDR2,
+							ANNOUNCE_LIST.FINISHED, ANNOUNCE_LIST.ANNL_NUM
+								, MEMBER.MEM_PROFILE
+								, ENT_INFO.ENT_NAME
+								, TRUNC(ANNOUNCE_LIST.ANNL_CLOSEING) - TRUNC(SYSDATE) AS DDAY
+						FROM
+						    SCRAP LEFT OUTER JOIN ANNOUNCE_LIST ON(SCRAP.ANNL_NO = ANNOUNCE_LIST.ANNL_NO)
+						    INNER JOIN MEMBER ON (ANNOUNCE_LIST.MEM_ID = MEMBER.MEM_ID)
+						    INNER JOIN ENT_INFO ON (ANNOUNCE_LIST.MEM_ID = ENT_INFO.MEM_ID)
+						WHERE
+						    SCRAP.MEM_ID = #{searchId}
+		               		AND ANNOUNCE_LIST.ISDEL = 'N'
+		                ORDER BY ANNOUNCE_LIST.ANNL_NO DESC
+		            ) A 
+		    ) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	
+	<insert id="insertLicense">
+		INSERT INTO CERTIFICATE (
+		    ANNL_NO,
+		    CER_NAME
+		) VALUES (
+		    #{annl_no},
+		   	#{cer_name}
+		)
+	</insert>
+	
+	<delete id="deleteLicense">
+		DELETE FROM CERTIFICATE
+		WHERE
+		    ANNL_NO = #{annl_no}
+		    AND   CER_NAME = #{cer_name}
+	</delete>
+	
+	
+	<select id="selectScrap" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM SCRAP
+		WHERE ANNL_NO = #{annl_no}
+		AND MEM_ID= #{mem_id}
+	</select>
+	
+	<insert id="inserteScrap" parameterType="hashMap">
+		INSERT INTO SCRAP
+		(ANNL_NO, MEM_ID)
+		VALUES
+		(	#{annl_no}, 
+			#{mem_id}
+		)
+	</insert>
+	
+	<delete id="deleteScrap" parameterType="hashMap">
+		DELETE FROM SCRAP
+		WHERE
+			ANNL_NO = #{annl_no}
+			AND MEM_ID = #{mem_id}
+	</delete>
+	
+	<select id="countScrap" parameterType="string" resultType="int">
+		SELECT	COUNT(MEM_ID)
+		FROM	SCRAP
+		WHERE	MEM_ID = #{mem_id}
+	</select>
+	
+	
+	
+	<select id="selectSuccCount" resultType="long">
+		SELECT COUNT(SUCCESS_LIST.ANNL_NO)
+		FROM
+		    SUCCESS_LIST INNER JOIN MEMBER ON (SUCCESS_LIST.MEM_ID = MEMBER.MEM_ID)
+		    INNER JOIN EASY_RESUME ON (SUCCESS_LIST.MEM_ID = EASY_RESUME.MEM_ID)
+		WHERE SUCCESS_LIST.ANNL_NO = #{searchWord,jdbcType=NUMERIC}
+		AND EASY_RESUME.ER_OPEN = 'Y'
+	</select>
+	
+	<select id="selectSuccMemebrtList" parameterType="hashMap" resultType="ApplicantMemberVO">
+		SELECT B.*
+				FROM (
+				    SELECT ROWNUM RNUM, A.*
+				    FROM (
+		                SELECT
+		                   MEMBER.MEM_ID,	MEMBER.MEM_NAME,
+		                   		EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM TO_DATE(EASY_RESUME.ER_AGE, 'YYYYMMDD')) AS ER_AGE,
+                                EASY_RESUME.ER_GENDER,	EASY_RESUME.ER_CAREER
+		                FROM
+                            SUCCESS_LIST INNER JOIN MEMBER ON (SUCCESS_LIST.MEM_ID = MEMBER.MEM_ID)
+                            INNER JOIN EASY_RESUME ON (SUCCESS_LIST.MEM_ID = EASY_RESUME.MEM_ID)
+		                WHERE SUCCESS_LIST.ANNL_NO = #{searchWord,jdbcType=NUMERIC}
+                        AND EASY_RESUME.ER_OPEN = 'Y'
+                        ) A 
+		    ) B
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	
+	<insert id="insertSucc" parameterType="hashMap">
+		INSERT INTO SUCCESS_LIST (
+		    ANNL_NO,
+		    MEM_ID
+		) VALUES (
+		    #{annl_no,jdbcType=NUMERIC},
+		    #{mem_id,jdbcType=VARCHAR}
+		)
+	</insert>
+	
+	<update id="updateSuccAnnounce">
+		UPDATE announce_list
+		    SET
+		        finished = 'Y'
+		WHERE
+		    annl_no = #{annl_no}
+	</update>
+	
+	<select id="mainAccountList" resultType="AnnounceVO">
+		<![CDATA[
+		SELECT ROWNUM, A.*
+		FROM (
+		    SELECT
+		        ANNOUNCE_LIST.ANNL_NO,		    ANNOUNCE_LIST.ANNL_CATEGORY,		    ANNOUNCE_LIST.ANNL_TITLE,
+		        TO_CHAR(ANNOUNCE_LIST.ANNL_DATE, 'YYYY-MM-DD') AS ANNL_DATE,		    TO_CHAR(ANNOUNCE_LIST.ANNL_CLOSEING, 'YYYY-MM-DD') AS ANNL_CLOSEING,		    ANNOUNCE_LIST.ANNL_CAREER,
+		        ANNOUNCE_LIST.ANNL_GENDER,		    ANNOUNCE_LIST.ANNL_SAL,		    ANNOUNCE_LIST.ANNL_ST,
+		        ANNOUNCE_LIST.ANNL_ADDR1,		    ANNOUNCE_LIST.ANNL_FEB,		    ANNOUNCE_LIST.ANNL_HOMEPAGE,
+		        ANNOUNCE_LIST.ANNL_OTHER,		    ANNOUNCE_LIST.MEM_ID,		    ANNOUNCE_LIST.ANNL_ADDR2,
+		        ANNOUNCE_LIST.FINISHED, ANNOUNCE_LIST.ANNL_NUM
+		            , MEMBER.MEM_PROFILE
+		            , ENT_INFO.ENT_NAME
+		            , TRUNC(ANNOUNCE_LIST.ANNL_CLOSEING) - TRUNC(SYSDATE) AS DDAY
+		            , NVL(SCRAP_CNT, 0) AS SCRAPCOUNT
+		    FROM
+		        ANNOUNCE_LIST INNER JOIN MEMBER ON (ANNOUNCE_LIST.MEM_ID = MEMBER.MEM_ID)
+		        INNER JOIN ENT_INFO ON (ANNOUNCE_LIST.MEM_ID = ENT_INFO.MEM_ID)
+		        LEFT OUTER JOIN (
+		            SELECT COUNT(SCRAP.MEM_ID) SCRAP_CNT, ANNL_NO
+		            FROM SCRAP
+		            GROUP BY ANNL_NO
+		        ) SCRAP ON (ANNOUNCE_LIST.ANNL_NO = SCRAP.ANNL_NO)
+		    WHERE 1 = 1
+		    AND ANNOUNCE_LIST.ANNL_CLOSEING > SYSDATE
+		    AND ANNOUNCE_LIST.FINISHED = 'N'
+		    AND ANNOUNCE_LIST.ISDEL = 'N'
+		    ORDER BY ANNOUNCE_LIST.ANNL_NO DESC
+		) A
+		WHERE ROWNUM <= 100
+		]]>
+	</select>
+	
+	
+	<select id="selectRecList" resultType="String">
+		SELECT
+		    MEM_ID
+		FROM
+		    RECOMMEND
+		WHERE
+		    ANNL_NO = #{annl_no}
+	</select>
+
+</mapper>
